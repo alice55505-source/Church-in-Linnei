@@ -233,12 +233,15 @@
       </div>
 
       <!-- Total Preview -->
-      <div class="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 space-y-1">
+      <div class="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 space-y-2">
+        <div id="totalPreviewForeignRow" class="flex items-center justify-between hidden">
+          <span class="text-xs font-bold text-indigo-400">外幣金額</span>
+          <span id="totalPreviewForeign" class="text-xl font-black text-indigo-700">0</span>
+        </div>
         <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-indigo-400">預計台幣總額</span>
+          <span class="text-xs font-bold text-indigo-400">台幣金額</span>
           <span id="totalPreview" class="text-xl font-black text-indigo-700">NT$ 0</span>
         </div>
-        <div id="totalPreviewForeign" class="text-right text-[11px] text-indigo-400 font-bold hidden"></div>
       </div>
 
       <!-- Submit -->
@@ -533,17 +536,18 @@ function updateTotalPreview() {
   const total = calcTotal();
   document.getElementById('totalPreview').textContent = 'NT$ ' + Math.round(total).toLocaleString();
 
-  // 同時顯示外幣原始金額
+  // 同時顯示外幣原始金額（與台幣金額同樣大小分開顯示）
   const cur = document.getElementById('expCurrency').value;
+  const foreignRow = document.getElementById('totalPreviewForeignRow');
   const foreignEl = document.getElementById('totalPreviewForeign');
-  if (foreignEl) {
+  if (foreignEl && foreignRow) {
     if (cur !== 'TWD') {
       const curInfo = CURRENCIES[cur];
       const subtotalForeign = calcSubtotalOnly();
-      foreignEl.textContent = `${curInfo.symbol}${subtotalForeign.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${curInfo.name}`;
-      foreignEl.classList.remove('hidden');
+      foreignEl.textContent = `${curInfo.symbol}${subtotalForeign.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+      foreignRow.classList.remove('hidden');
     } else {
-      foreignEl.classList.add('hidden');
+      foreignRow.classList.add('hidden');
     }
   }
 
@@ -908,17 +912,21 @@ function renderSummaryCards() {
   container.innerHTML = `
     <div class="col-span-2 bg-indigo-600 rounded-2xl p-4 text-white">
       <div class="text-xs font-bold opacity-70 mb-1">總支出</div>
-      <div class="text-2xl font-black">${fmtBaseAmount(totalSpend)}</div>
-      ${showTWD ? `<div class="text-xs opacity-70 mt-0.5">≈ NT$ ${Math.round(totalSpend).toLocaleString()}</div>` : ''}
+      <div class="flex items-baseline gap-3 flex-wrap">
+        <div class="text-2xl font-black">${fmtBaseAmount(totalSpend)}</div>
+        ${showTWD ? `<div class="text-2xl font-black">NT$ ${Math.round(totalSpend).toLocaleString()}</div>` : ''}
+      </div>
       <div class="text-xs opacity-60 mt-1">${expenses.length} 筆紀錄</div>
     </div>
     ${summary.map(s => `
       <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
         <div class="text-xs font-black text-slate-400 mb-1 truncate">${s.user.name}</div>
-        <div class="text-base font-black ${s.balance >= 0 ? 'text-emerald-600' : 'text-rose-500'}">
-          ${s.balance >= 0 ? '+' : ''}${fmtBaseAmount(s.balance)}
+        <div class="flex items-baseline gap-2 flex-wrap">
+          <div class="text-base font-black ${s.balance >= 0 ? 'text-emerald-600' : 'text-rose-500'}">
+            ${s.balance >= 0 ? '+' : ''}${fmtBaseAmount(s.balance)}
+          </div>
+          ${showTWD ? `<div class="text-base font-black ${s.balance >= 0 ? 'text-emerald-600' : 'text-rose-500'}">${s.balance >= 0 ? '+' : ''}NT$ ${Math.round(s.balance).toLocaleString()}</div>` : ''}
         </div>
-        ${showTWD ? `<div class="text-[10px] text-slate-400">≈ NT$ ${Math.round(s.balance).toLocaleString()}</div>` : ''}
         <div class="text-[10px] text-slate-400 mt-1">付 ${fmtBaseAmount(s.paid)} | 應付 ${fmtBaseAmount(s.shouldPay)}</div>
       </div>
     `).join('')}
@@ -944,9 +952,9 @@ function renderSettlement() {
             <span class="font-bold text-sm text-slate-700">${s.from}</span>
             <svg width="16" height="16" fill="none" stroke="#f59e0b" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             <span class="font-bold text-sm text-slate-700">${s.to}</span>
-            <div class="ml-auto text-right">
-              <div class="font-black text-amber-600 text-sm">${fmtBaseAmount(s.amount)}</div>
-              ${showTWD ? `<div class="text-[10px] text-amber-500">實付 NT$ ${Math.round(s.amount).toLocaleString()}</div>` : ''}
+            <div class="ml-auto flex items-center gap-2 flex-wrap justify-end">
+              <span class="font-black text-amber-600 text-sm">${fmtBaseAmount(s.amount)}</span>
+              ${showTWD ? `<span class="font-black text-amber-600 text-sm">NT$ ${Math.round(s.amount).toLocaleString()}</span>` : ''}
             </div>
           </div>
         `).join('')}
@@ -1005,8 +1013,8 @@ function renderExpenseList() {
             </div>
           </div>
           <div class="text-right flex-shrink-0">
+            ${exp.currency !== 'TWD' ? `<div class="font-black text-base text-slate-800">${cur.symbol}${exp.totalAmount?.toLocaleString()}</div>` : ''}
             <div class="font-black text-base text-slate-800">NT$ ${Math.round(exp.totalTWD).toLocaleString()}</div>
-            ${exp.currency !== 'TWD' ? `<div class="text-[10px] text-slate-400">${cur.symbol}${exp.totalAmount?.toLocaleString()}</div>` : ''}
           </div>
         </div>
         <div class="flex gap-2 mt-3 pt-3 border-t border-slate-100">
@@ -1042,10 +1050,11 @@ function openExpenseModal(id) {
         </button>
       </div>
       
-      <div class="bg-indigo-50 rounded-xl p-4">
+      <div class="bg-indigo-50 rounded-xl p-4 space-y-1">
         <div class="text-xs text-indigo-400 font-bold mb-1">總金額</div>
+        ${exp.currency !== 'TWD' ? `<div class="text-2xl font-black text-indigo-700">${cur.symbol}${exp.totalAmount?.toLocaleString()}</div>` : ''}
         <div class="text-2xl font-black text-indigo-700">NT$ ${Math.round(exp.totalTWD).toLocaleString()}</div>
-        ${exp.currency !== 'TWD' ? `<div class="text-xs text-indigo-400 mt-1">${cur.symbol}${exp.totalAmount?.toLocaleString()} × ${exp.exchangeRate}</div>` : ''}
+        ${exp.currency !== 'TWD' ? `<div class="text-xs text-indigo-400">匯率 × ${exp.exchangeRate}</div>` : ''}
       </div>
       
       <div class="grid grid-cols-2 gap-3 text-sm">
@@ -1132,12 +1141,10 @@ function renderDepositList() {
     const amt = d.amount ?? d.amountTWD;
     return `
       <div class="flex items-center justify-between p-2 pl-3 bg-slate-50 rounded-xl border border-slate-100 animate-in">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 flex-wrap">
           <span class="text-xs font-bold text-slate-700">${u?.name || '?'}</span>
-          <div class="flex flex-col">
-            <span class="text-xs font-black text-emerald-600">預繳公帳 ${cur.symbol}${amt.toLocaleString()}</span>
-            ${dCur !== 'TWD' ? `<span class="text-[10px] text-slate-400">≈ NT$ ${Math.round(d.amountTWD).toLocaleString()}</span>` : ''}
-          </div>
+          <span class="text-xs font-black text-emerald-600">預繳公帳 ${cur.symbol}${amt.toLocaleString()}</span>
+          ${dCur !== 'TWD' ? `<span class="text-xs font-black text-emerald-600">NT$ ${Math.round(d.amountTWD).toLocaleString()}</span>` : ''}
         </div>
         <button onclick="removeDeposit('${d.id}')" class="text-slate-300 hover:text-rose-500 p-1">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
