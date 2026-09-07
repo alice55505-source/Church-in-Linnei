@@ -251,6 +251,24 @@
 
   <!-- SETTLE TAB -->
   <div id="tab-settle" class="tab animate-in space-y-6">
+    <!-- Base Currency -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+      <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20 15.3 15.3 0 010-20z"/></svg>
+        記帳幣別
+      </h2>
+      <select id="baseCurrencySelect" onchange="onBaseCurrencyChange()" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
+        <option value="TWD">🇹🇼 台幣 NT$</option>
+        <option value="JPY">🇯🇵 日圓 ¥</option>
+        <option value="USD">🇺🇸 美金 $</option>
+        <option value="EUR">🇪🇺 歐元 €</option>
+        <option value="HKD">🇭🇰 港幣 HK$</option>
+        <option value="CNY">🇨🇳 人民幣 ¥</option>
+        <option value="KRW">🇰🇷 韓元 ₩</option>
+      </select>
+      <p class="text-[11px] text-slate-400 font-medium">新增消費、公帳預繳的預設幣別，總覽統計也會以此幣別呈現（結算時仍會換算成台幣）</p>
+    </div>
+
     <!-- Users -->
     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
       <div class="flex items-center justify-between">
@@ -375,6 +393,7 @@ const CURRENCIES = {
 let users = [];
 let expenses = [];
 let deposits = [];
+let baseCurrency = 'TWD';
 let editingId = null;
 let entryMode = 'quick';
 let payMethod = 'Cash';
@@ -388,11 +407,32 @@ function loadData() {
   try { users = JSON.parse(localStorage.getItem('trip_users')) || []; } catch(e){ users=[]; }
   try { expenses = JSON.parse(localStorage.getItem('expenses')) || []; } catch(e){ expenses=[]; }
   try { deposits = JSON.parse(localStorage.getItem('trip_deposits')) || []; } catch(e){ deposits=[]; }
+  baseCurrency = localStorage.getItem('trip_baseCurrency') || 'TWD';
 }
 function saveData() {
   localStorage.setItem('trip_users', JSON.stringify(users));
   localStorage.setItem('expenses', JSON.stringify(expenses));
   localStorage.setItem('trip_deposits', JSON.stringify(deposits));
+  localStorage.setItem('trip_baseCurrency', baseCurrency);
+}
+
+function toBaseAmount(twd) {
+  return baseCurrency === 'TWD' ? twd : twd / CURRENCIES[baseCurrency].rate;
+}
+function fmtBaseAmount(twd) {
+  return CURRENCIES[baseCurrency].symbol + Math.round(toBaseAmount(twd)).toLocaleString();
+}
+
+function onBaseCurrencyChange() {
+  baseCurrency = document.getElementById('baseCurrencySelect').value;
+  saveData();
+  if (!editingId) {
+    document.getElementById('expCurrency').value = baseCurrency;
+    onCurrencyChange();
+  }
+  document.getElementById('depositCurrency').value = baseCurrency;
+  onDepositCurrencyChange();
+  renderDashboard();
 }
 
 // ===== TAB =====
@@ -643,7 +683,7 @@ function resetForm() {
   document.getElementById('expDiscount').value = '0';
   document.getElementById('expTip').value = '0';
   document.getElementById('expActualTWD').value = '';
-  document.getElementById('expCurrency').value = 'TWD';
+  document.getElementById('expCurrency').value = baseCurrency;
   document.getElementById('cancelEditBtn').classList.add('hidden');
   document.getElementById('submitBtnText').textContent = '新增支出';
   setEntryMode('quick');
@@ -863,20 +903,23 @@ function renderSummaryCards() {
   if (users.length === 0) { container.innerHTML = ''; return; }
   const summary = calcSummary();
   const totalSpend = expenses.reduce((s, e) => s + e.totalTWD, 0);
-  
+  const showTWD = baseCurrency !== 'TWD';
+
   container.innerHTML = `
     <div class="col-span-2 bg-indigo-600 rounded-2xl p-4 text-white">
       <div class="text-xs font-bold opacity-70 mb-1">總支出</div>
-      <div class="text-2xl font-black">NT$ ${Math.round(totalSpend).toLocaleString()}</div>
+      <div class="text-2xl font-black">${fmtBaseAmount(totalSpend)}</div>
+      ${showTWD ? `<div class="text-xs opacity-70 mt-0.5">≈ NT$ ${Math.round(totalSpend).toLocaleString()}</div>` : ''}
       <div class="text-xs opacity-60 mt-1">${expenses.length} 筆紀錄</div>
     </div>
     ${summary.map(s => `
       <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
         <div class="text-xs font-black text-slate-400 mb-1 truncate">${s.user.name}</div>
         <div class="text-base font-black ${s.balance >= 0 ? 'text-emerald-600' : 'text-rose-500'}">
-          ${s.balance >= 0 ? '+' : ''}NT$ ${Math.round(s.balance).toLocaleString()}
+          ${s.balance >= 0 ? '+' : ''}${fmtBaseAmount(s.balance)}
         </div>
-        <div class="text-[10px] text-slate-400 mt-1">付 ${Math.round(s.paid).toLocaleString()} | 應付 ${Math.round(s.shouldPay).toLocaleString()}</div>
+        ${showTWD ? `<div class="text-[10px] text-slate-400">≈ NT$ ${Math.round(s.balance).toLocaleString()}</div>` : ''}
+        <div class="text-[10px] text-slate-400 mt-1">付 ${fmtBaseAmount(s.paid)} | 應付 ${fmtBaseAmount(s.shouldPay)}</div>
       </div>
     `).join('')}
   `;
@@ -885,12 +928,13 @@ function renderSummaryCards() {
 function renderSettlement() {
   const container = document.getElementById('settlementSection');
   if (users.length < 2) { container.innerHTML = ''; return; }
-  
+
   const summary = calcSummary();
   const settlements = calcSettlements(summary);
-  
+
   if (settlements.length === 0) { container.innerHTML = ''; return; }
-  
+  const showTWD = baseCurrency !== 'TWD';
+
   container.innerHTML = `
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
       <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">結算建議</h2>
@@ -900,7 +944,10 @@ function renderSettlement() {
             <span class="font-bold text-sm text-slate-700">${s.from}</span>
             <svg width="16" height="16" fill="none" stroke="#f59e0b" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             <span class="font-bold text-sm text-slate-700">${s.to}</span>
-            <span class="ml-auto font-black text-amber-600 text-sm">NT$ ${Math.round(s.amount).toLocaleString()}</span>
+            <div class="ml-auto text-right">
+              <div class="font-black text-amber-600 text-sm">${fmtBaseAmount(s.amount)}</div>
+              ${showTWD ? `<div class="text-[10px] text-amber-500">實付 NT$ ${Math.round(s.amount).toLocaleString()}</div>` : ''}
+            </div>
           </div>
         `).join('')}
       </div>
@@ -1134,7 +1181,7 @@ function addDeposit() {
   const amountTWD = cur === 'TWD' ? amount : amount * rate;
   deposits.push({ id: genId(), userId, currency: cur, exchangeRate: rate, amount, amountTWD, date: new Date().toISOString() });
   document.getElementById('depositAmount').value = '';
-  document.getElementById('depositCurrency').value = 'TWD';
+  document.getElementById('depositCurrency').value = baseCurrency;
   onDepositCurrencyChange();
   saveData();
   renderDepositList();
@@ -1166,10 +1213,10 @@ function genId() {
 loadData();
 selectedSplitUsers = new Set(users.map(u => u.id));
 document.getElementById('expDate').value = new Date().toISOString().split('T')[0];
-document.getElementById('expRate').value = CURRENCIES.TWD.rate;
-document.getElementById('rateField').classList.add('hidden');
-document.getElementById('depositRate').value = CURRENCIES.TWD.rate;
-document.getElementById('depositRateField').classList.add('hidden');
+document.getElementById('baseCurrencySelect').value = baseCurrency;
+document.getElementById('expCurrency').value = baseCurrency;
+document.getElementById('depositCurrency').value = baseCurrency;
+onDepositCurrencyChange();
 renderDashboard();
 renderAddForm();
 
