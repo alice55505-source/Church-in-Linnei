@@ -1129,13 +1129,14 @@ function renderDepositList() {
     const u = users.find(u => u.id === d.userId);
     const dCur = d.currency || 'TWD';
     const cur = CURRENCIES[dCur] || CURRENCIES.TWD;
+    const amt = d.amount ?? d.amountTWD;
     return `
       <div class="flex items-center justify-between p-2 pl-3 bg-slate-50 rounded-xl border border-slate-100 animate-in">
         <div class="flex items-center gap-3">
           <span class="text-xs font-bold text-slate-700">${u?.name || '?'}</span>
           <div class="flex flex-col">
-            <span class="text-xs font-black text-emerald-600">預繳公帳 NT$ ${Math.round(d.amountTWD).toLocaleString()}</span>
-            ${dCur !== 'TWD' ? `<span class="text-[10px] text-slate-400">${cur.symbol}${(d.amount ?? d.amountTWD).toLocaleString()} × ${d.exchangeRate}</span>` : ''}
+            <span class="text-xs font-black text-emerald-600">預繳公帳 ${cur.symbol}${amt.toLocaleString()}</span>
+            ${dCur !== 'TWD' ? `<span class="text-[10px] text-slate-400">≈ NT$ ${Math.round(d.amountTWD).toLocaleString()}</span>` : ''}
           </div>
         </div>
         <button onclick="removeDeposit('${d.id}')" class="text-slate-300 hover:text-rose-500 p-1">
