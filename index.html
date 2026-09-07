@@ -233,9 +233,12 @@
       </div>
 
       <!-- Total Preview -->
-      <div class="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 flex items-center justify-between">
-        <span class="text-xs font-bold text-indigo-400">預計台幣總額</span>
-        <span id="totalPreview" class="text-xl font-black text-indigo-700">NT$ 0</span>
+      <div class="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 space-y-1">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-indigo-400">預計台幣總額</span>
+          <span id="totalPreview" class="text-xl font-black text-indigo-700">NT$ 0</span>
+        </div>
+        <div id="totalPreviewForeign" class="text-right text-[11px] text-indigo-400 font-bold hidden"></div>
       </div>
 
       <!-- Submit -->
@@ -273,16 +276,32 @@
         <svg width="16" height="16" fill="none" stroke="#10b981" stroke-width="2" viewBox="0 0 24 24"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></svg>
         公帳預繳紀錄
       </h2>
-      <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
-        <div class="sm:col-span-4 space-y-1">
+      <div class="grid grid-cols-2 sm:grid-cols-12 gap-2 items-end">
+        <div class="col-span-2 sm:col-span-5 space-y-1">
           <label class="text-[10px] font-bold text-slate-400 ml-1">誰繳的？</label>
           <select id="depositUser" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold"></select>
         </div>
-        <div class="sm:col-span-5 space-y-1">
-          <label class="text-[10px] font-bold text-slate-400 ml-1">金額 (NT$)</label>
-          <input type="number" id="depositAmount" placeholder="繳交多少台幣" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-black">
+        <div class="col-span-1 sm:col-span-3 space-y-1">
+          <label class="text-[10px] font-bold text-slate-400 ml-1">幣別</label>
+          <select id="depositCurrency" onchange="onDepositCurrencyChange()" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
+            <option value="TWD">🇹🇼 台幣 NT$</option>
+            <option value="JPY">🇯🇵 日圓 ¥</option>
+            <option value="USD">🇺🇸 美金 $</option>
+            <option value="EUR">🇪🇺 歐元 €</option>
+            <option value="HKD">🇭🇰 港幣 HK$</option>
+            <option value="CNY">🇨🇳 人民幣 ¥</option>
+            <option value="KRW">🇰🇷 韓元 ₩</option>
+          </select>
         </div>
-        <button onclick="addDeposit()" class="sm:col-span-3 bg-emerald-600 text-white py-2.5 rounded-xl font-black text-sm shadow-md shadow-emerald-100 flex items-center justify-center gap-2 btn-scale transition-all">
+        <div class="col-span-1 sm:col-span-4 space-y-1 hidden" id="depositRateField">
+          <label class="text-[10px] font-bold text-slate-400 ml-1">匯率 (1外幣=?NT$)</label>
+          <input type="number" id="depositRate" step="0.001" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-black text-indigo-600">
+        </div>
+        <div class="col-span-2 sm:col-span-9 space-y-1">
+          <label class="text-[10px] font-bold text-slate-400 ml-1">金額</label>
+          <input type="number" id="depositAmount" placeholder="繳交多少金額（依所選幣別）" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-black">
+        </div>
+        <button onclick="addDeposit()" class="col-span-2 sm:col-span-3 bg-emerald-600 text-white py-2.5 rounded-xl font-black text-sm shadow-md shadow-emerald-100 flex items-center justify-center gap-2 btn-scale transition-all">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 紀錄
         </button>
       </div>
@@ -474,6 +493,20 @@ function updateTotalPreview() {
   const total = calcTotal();
   document.getElementById('totalPreview').textContent = 'NT$ ' + Math.round(total).toLocaleString();
 
+  // 同時顯示外幣原始金額
+  const cur = document.getElementById('expCurrency').value;
+  const foreignEl = document.getElementById('totalPreviewForeign');
+  if (foreignEl) {
+    if (cur !== 'TWD') {
+      const curInfo = CURRENCIES[cur];
+      const subtotalForeign = calcSubtotalOnly();
+      foreignEl.textContent = `${curInfo.symbol}${subtotalForeign.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${curInfo.name}`;
+      foreignEl.classList.remove('hidden');
+    } else {
+      foreignEl.classList.add('hidden');
+    }
+  }
+
   // 顯示稅率說明
   const explainEl = document.getElementById('taxExplain');
   if (!explainEl) return;
@@ -494,10 +527,7 @@ function updateTotalPreview() {
   }
 }
 
-function calcTotal() {
-  const cur  = document.getElementById('expCurrency').value;
-  const rate = cur === 'TWD' ? 1 : (parseFloat(document.getElementById('expRate').value) || CURRENCIES[cur].rate);
-
+function calcSubtotalOnly() {
   let subtotal = 0;
   if (entryMode === 'quick') {
     const raw      = parseFloat(document.getElementById('expAmount').value)   || 0;
@@ -520,6 +550,13 @@ function calcTotal() {
       return sum + base;
     }, 0);
   }
+  return subtotal;
+}
+
+function calcTotal() {
+  const cur  = document.getElementById('expCurrency').value;
+  const rate = cur === 'TWD' ? 1 : (parseFloat(document.getElementById('expRate').value) || CURRENCIES[cur].rate);
+  const subtotal = calcSubtotalOnly();
 
   const actualTWD = payMethod === 'Credit Card' ? (parseFloat(document.getElementById('expActualTWD').value) || 0) : 0;
   return actualTWD > 0 ? actualTWD : subtotal * rate;
@@ -1043,11 +1080,16 @@ function renderDepositList() {
   }
   container.innerHTML = [...deposits].reverse().map(d => {
     const u = users.find(u => u.id === d.userId);
+    const dCur = d.currency || 'TWD';
+    const cur = CURRENCIES[dCur] || CURRENCIES.TWD;
     return `
       <div class="flex items-center justify-between p-2 pl-3 bg-slate-50 rounded-xl border border-slate-100 animate-in">
         <div class="flex items-center gap-3">
           <span class="text-xs font-bold text-slate-700">${u?.name || '?'}</span>
-          <span class="text-xs font-black text-emerald-600">預繳公帳 NT$ ${d.amountTWD.toLocaleString()}</span>
+          <div class="flex flex-col">
+            <span class="text-xs font-black text-emerald-600">預繳公帳 NT$ ${Math.round(d.amountTWD).toLocaleString()}</span>
+            ${dCur !== 'TWD' ? `<span class="text-[10px] text-slate-400">${cur.symbol}${(d.amount ?? d.amountTWD).toLocaleString()} × ${d.exchangeRate}</span>` : ''}
+          </div>
         </div>
         <button onclick="removeDeposit('${d.id}')" class="text-slate-300 hover:text-rose-500 p-1">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
@@ -1077,12 +1119,23 @@ function removeUser(id) {
   renderSettle();
 }
 
+function onDepositCurrencyChange() {
+  const cur = document.getElementById('depositCurrency').value;
+  document.getElementById('depositRate').value = CURRENCIES[cur].rate;
+  document.getElementById('depositRateField').classList.toggle('hidden', cur === 'TWD');
+}
+
 function addDeposit() {
   const userId = document.getElementById('depositUser').value;
+  const cur = document.getElementById('depositCurrency').value;
+  const rate = cur === 'TWD' ? 1 : (parseFloat(document.getElementById('depositRate').value) || CURRENCIES[cur].rate);
   const amount = parseFloat(document.getElementById('depositAmount').value);
   if (!amount || amount <= 0) return alert('請輸入金額！');
-  deposits.push({ id: genId(), userId, amountTWD: amount, date: new Date().toISOString() });
+  const amountTWD = cur === 'TWD' ? amount : amount * rate;
+  deposits.push({ id: genId(), userId, currency: cur, exchangeRate: rate, amount, amountTWD, date: new Date().toISOString() });
   document.getElementById('depositAmount').value = '';
+  document.getElementById('depositCurrency').value = 'TWD';
+  onDepositCurrencyChange();
   saveData();
   renderDepositList();
   if (activeTab === 'dashboard') renderDashboard();
@@ -1115,6 +1168,8 @@ selectedSplitUsers = new Set(users.map(u => u.id));
 document.getElementById('expDate').value = new Date().toISOString().split('T')[0];
 document.getElementById('expRate').value = CURRENCIES.TWD.rate;
 document.getElementById('rateField').classList.add('hidden');
+document.getElementById('depositRate').value = CURRENCIES.TWD.rate;
+document.getElementById('depositRateField').classList.add('hidden');
 renderDashboard();
 renderAddForm();
 
