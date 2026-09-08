@@ -669,7 +669,8 @@ function renderAddForm() {
   renderSplitChips();
   // Update paidBy
   const paidBySelect = document.getElementById('expPaidBy');
-  paidBySelect.innerHTML = users.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+  paidBySelect.innerHTML = `<option value="PUBLIC">🏦 公帳直接支出</option>` +
+    users.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
   onCurrencyChange();
 }
 
@@ -882,6 +883,11 @@ function renderDashboard() {
   renderExpenseList();
 }
 
+function payerName(exp) {
+  if (exp.paidBy === 'PUBLIC') return '公帳';
+  return users.find(u => u.id === exp.paidBy)?.name || '?';
+}
+
 function calcSummary() {
   const summary = {};
   users.forEach(u => {
@@ -907,6 +913,9 @@ function renderSummaryCards() {
   if (users.length === 0) { container.innerHTML = ''; return; }
   const summary = calcSummary();
   const totalSpend = expenses.reduce((s, e) => s + e.totalTWD, 0);
+  const totalDeposits = deposits.reduce((s, d) => s + d.amountTWD, 0);
+  const publicPaidSpend = expenses.filter(e => e.paidBy === 'PUBLIC').reduce((s, e) => s + e.totalTWD, 0);
+  const publicBalance = totalDeposits - publicPaidSpend;
   const showTWD = baseCurrency !== 'TWD';
 
   container.innerHTML = `
@@ -917,6 +926,14 @@ function renderSummaryCards() {
         ${showTWD ? `<div class="text-2xl font-black">NT$ ${Math.round(totalSpend).toLocaleString()}</div>` : ''}
       </div>
       <div class="text-xs opacity-60 mt-1">${expenses.length} 筆紀錄</div>
+    </div>
+    <div class="col-span-2 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+      <div class="text-xs font-black text-slate-400 mb-1">公帳餘額</div>
+      <div class="flex items-baseline gap-3 flex-wrap">
+        <div class="text-xl font-black ${publicBalance >= 0 ? 'text-emerald-600' : 'text-rose-500'}">${fmtBaseAmount(publicBalance)}</div>
+        ${showTWD ? `<div class="text-xl font-black ${publicBalance >= 0 ? 'text-emerald-600' : 'text-rose-500'}">NT$ ${Math.round(publicBalance).toLocaleString()}</div>` : ''}
+      </div>
+      <div class="text-[10px] text-slate-400 mt-1">預繳 ${fmtBaseAmount(totalDeposits)} − 公帳直接支出 ${fmtBaseAmount(publicPaidSpend)}</div>
     </div>
     ${summary.map(s => `
       <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
@@ -996,7 +1013,6 @@ function renderExpenseList() {
   }
   
   container.innerHTML = expenses.map(exp => {
-    const payer = users.find(u => u.id === exp.paidBy);
     const cur = CURRENCIES[exp.currency] || CURRENCIES.TWD;
     const date = exp.date ? new Date(exp.date).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' }) : '';
     return `
@@ -1006,10 +1022,11 @@ function renderExpenseList() {
             <div class="flex items-center gap-2 mb-1">
               <span class="font-black text-sm text-slate-800 truncate">${exp.description}</span>
               ${exp.currency !== 'TWD' ? `<span class="tag bg-blue-50 text-blue-500">${exp.currency}</span>` : ''}
+              ${exp.paidBy === 'PUBLIC' ? `<span class="tag bg-amber-50 text-amber-600">🏦公帳</span>` : ''}
               <span class="tag ${exp.paymentMethod === 'Credit Card' ? 'bg-purple-50 text-purple-500' : 'bg-green-50 text-green-500'}">${exp.paymentMethod === 'Credit Card' ? '💳' : '💵'}</span>
             </div>
             <div class="text-[11px] text-slate-400 font-medium">
-              ${date} · ${payer ? payer.name : '?'} 付 · ${exp.splitWith.length}人分
+              ${date} · ${payerName(exp)} 付 · ${exp.splitWith.length}人分
             </div>
           </div>
           <div class="text-right flex-shrink-0">
@@ -1035,7 +1052,6 @@ function renderExpenseList() {
 function openExpenseModal(id) {
   const exp = expenses.find(e => e.id === id);
   if (!exp) return;
-  const payer = users.find(u => u.id === exp.paidBy);
   const cur = CURRENCIES[exp.currency] || CURRENCIES.TWD;
   
   document.getElementById('modalContent').innerHTML = `
@@ -1060,7 +1076,7 @@ function openExpenseModal(id) {
       <div class="grid grid-cols-2 gap-3 text-sm">
         <div class="bg-slate-50 rounded-xl p-3">
           <div class="text-[10px] font-bold text-slate-400 mb-1">付款人</div>
-          <div class="font-black text-slate-700">${payer?.name || '?'}</div>
+          <div class="font-black text-slate-700">${payerName(exp)}</div>
         </div>
         <div class="bg-slate-50 rounded-xl p-3">
           <div class="text-[10px] font-bold text-slate-400 mb-1">付款方式</div>
