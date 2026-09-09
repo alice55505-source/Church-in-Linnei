@@ -1,17 +1,18 @@
 import { uid, nowISO, json, badRequest } from '../../_lib/db.js';
 
-// 公開：任何人皆可查詢與提交請款，不需登入
+// 公開：不需登入，但不提供「列出全部請款」，只能用自己知道的請款單編號查詢
+// （前端會把自己裝置送出過的 id 存在 localStorage，用這支 API 查回自己的紀錄）
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
-  const month = url.searchParams.get('month');
-  let sql = 'SELECT * FROM expense_requests';
-  const params = [];
-  if (month) {
-    sql += ' WHERE expense_date LIKE ?';
-    params.push(month + '%');
-  }
-  sql += ' ORDER BY expense_date DESC, created_at DESC';
-  const { results } = await env.DB.prepare(sql).bind(...params).all();
+  const idsParam = url.searchParams.get('ids') || '';
+  const ids = idsParam.split(',').map(s => s.trim()).filter(Boolean).slice(0, 200);
+  if (ids.length === 0) return json({ requests: [] });
+
+  const placeholders = ids.map(() => '?').join(',');
+  const { results } = await env.DB.prepare(
+    `SELECT * FROM expense_requests WHERE id IN (${placeholders}) ORDER BY expense_date DESC, created_at DESC`
+  ).bind(...ids).all();
+
   for (const r of results) {
     const items = await env.DB.prepare('SELECT * FROM expense_items WHERE request_id=? ORDER BY rowid').bind(r.id).all();
     r.items = items.results;

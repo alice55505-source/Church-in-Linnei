@@ -35,7 +35,7 @@
 <main class="max-w-3xl mx-auto px-4 pt-5 space-y-5">
 
   <div class="card p-4">
-    <p class="text-xs font-bold text-slate-400">此頁公開，任何聖徒皆可查詢與提交請款申請。</p>
+    <p class="text-xs font-bold text-slate-400">此頁公開、不需密碼即可提交請款申請。下方紀錄僅顯示您這支手機自己送出過的請款，不會顯示其他人的紀錄。</p>
   </div>
 
   <!-- New Request -->
@@ -88,7 +88,7 @@
   <!-- List -->
   <div class="card overflow-hidden">
     <div class="px-5 pt-5 pb-3 flex items-center justify-between">
-      <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest">請款紀錄</h2>
+      <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest">我的請款紀錄</h2>
       <input type="month" id="monthFilter" class="text-xs font-bold px-2 py-1.5 bg-slate-50 border border-slate-100 rounded-lg outline-none">
     </div>
     <div id="reqList" class="px-4 pb-5 space-y-2"></div>
@@ -102,6 +102,18 @@ let items = [];
 let receiptKeys = [];
 
 function genRowId() { return 'r' + Math.random().toString(36).slice(2, 9); }
+
+// 這支手機自己送出過的請款單，只存在本機 localStorage，不會上傳到伺服器
+function getMyRequestIds() {
+  try { return JSON.parse(localStorage.getItem('my_expense_request_ids')) || []; } catch (e) { return []; }
+}
+function saveMyRequestId(id) {
+  const ids = getMyRequestIds();
+  if (!ids.includes(id)) {
+    ids.unshift(id);
+    localStorage.setItem('my_expense_request_ids', JSON.stringify(ids.slice(0, 300)));
+  }
+}
 
 async function handleReceiptUpload(input) {
   const files = Array.from(input.files || []);
@@ -192,7 +204,8 @@ async function submitRequest() {
   if (validItems.length === 0) return toast('請至少填寫一項品項', true);
 
   try {
-    await api('/api/expenses', { method: 'POST', body: { expense_date, requester, purpose, items: validItems, receipt_keys: receiptKeys } });
+    const res = await api('/api/expenses', { method: 'POST', body: { expense_date, requester, purpose, items: validItems, receipt_keys: receiptKeys } });
+    saveMyRequestId(res.id);
     toast('請款申請已送出');
     document.getElementById('fRequester').value = '';
     document.getElementById('fPurpose').value = '';
@@ -216,15 +229,21 @@ function statusBadge(status) {
 
 async function loadList() {
   const month = document.getElementById('monthFilter').value;
-  const qs = month ? ('?month=' + month) : '';
+  const c = document.getElementById('reqList');
+  const ids = getMyRequestIds();
+  if (ids.length === 0) {
+    c.innerHTML = '<p class="text-center text-slate-300 text-sm py-8">尚無紀錄</p>';
+    return;
+  }
   try {
-    const data = await api('/api/expenses' + qs);
-    const c = document.getElementById('reqList');
-    if (data.requests.length === 0) {
+    const data = await api('/api/expenses?ids=' + ids.join(','));
+    let requests = data.requests;
+    if (month) requests = requests.filter(r => r.expense_date.startsWith(month));
+    if (requests.length === 0) {
       c.innerHTML = '<p class="text-center text-slate-300 text-sm py-8">尚無紀錄</p>';
       return;
     }
-    c.innerHTML = data.requests.map(r => `
+    c.innerHTML = requests.map(r => `
       <div class="border border-slate-100 rounded-xl p-3">
         <div class="flex items-start justify-between gap-2">
           <div>
