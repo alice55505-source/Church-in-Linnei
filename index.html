@@ -1,1254 +1,201 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>全球記帳通 - 多人雲端同步記帳</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <style>
-    * { box-sizing: border-box; }
-    body { 
-      font-family: 'Inter', "Microsoft JhengHei", sans-serif; 
-      overscroll-behavior-y: contain;
-      background: #F8FAFC;
-    }
-    .bottom-nav-blur {
-      background: rgba(255,255,255,0.85);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-    }
-    input, select, textarea { font-size: 16px !important; }
-    .tab { display: none; }
-    .tab.active { display: block; }
-    .animate-in { animation: fadeIn 0.2s ease; }
-    @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
-    .badge { display:inline-flex; align-items:center; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:800; }
-    .btn-scale:active { transform: scale(0.92); }
-    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:200; align-items:flex-end; justify-content:center; }
-    .modal-overlay.open { display:flex; }
-    .modal-sheet { background:#fff; border-radius:24px 24px 0 0; width:100%; max-width:640px; max-height:90vh; overflow-y:auto; padding:24px; }
-    ::-webkit-scrollbar { width:4px; }
-    ::-webkit-scrollbar-track { background:transparent; }
-    ::-webkit-scrollbar-thumb { background:#e2e8f0; border-radius:4px; }
-    .spinner { border:2px solid #e2e8f0; border-top-color:#6366f1; border-radius:50%; width:14px; height:14px; animation:spin 0.7s linear infinite; display:inline-block; }
-    @keyframes spin { to { transform:rotate(360deg); } }
-    .nav-item { display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; transition:all 0.15s; cursor:pointer; background:none; border:none; outline:none; }
-    .balance-pos { color:#059669; }
-    .balance-neg { color:#dc2626; }
-    .balance-zero { color:#94a3b8; }
-    select option { font-size:14px; }
-    .chip { display:inline-flex; align-items:center; padding:4px 10px; border-radius:999px; font-size:11px; font-weight:700; background:#f1f5f9; color:#475569; cursor:pointer; border:1.5px solid #e2e8f0; transition:all 0.1s; }
-    .chip.selected { background:#eef2ff; color:#4f46e5; border-color:#6366f1; }
-    .expense-card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:14px 16px; transition:box-shadow 0.15s; cursor:pointer; }
-    .expense-card:hover { box-shadow:0 4px 16px rgba(0,0,0,0.07); }
-    .tag { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:8px; font-size:10px; font-weight:700; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>林內召會收支記帳 - 請款</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family:'Inter',"Microsoft JhengHei",sans-serif; background:#F8FAFC; }
+  input, select, textarea { font-size:16px !important; }
+  .card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; }
+  .badge { display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; font-size:10px; font-weight:800; }
+</style>
 </head>
-<body class="bg-[#F8FAFC] text-slate-900 min-h-screen pb-24">
-<div id="app">
+<body class="text-slate-900 min-h-screen pb-16">
 
-<!-- HEADER -->
-<header class="sticky top-0 z-40 bottom-nav-blur border-b border-slate-200/60">
-  <div class="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
+<header class="sticky top-0 z-40 bg-white/85 backdrop-blur border-b border-slate-200/60">
+  <div class="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
     <div class="flex items-center gap-2">
-      <div class="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center">
-        <svg width="16" height="16" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-      </div>
-      <span class="font-black text-slate-800 text-sm">全球記帳通</span>
+      <div class="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-sm">林</div>
+      <span class="font-black text-slate-800 text-sm">林內召會收支記帳</span>
     </div>
-    <div id="syncStatus" class="flex items-center gap-2 text-xs font-bold text-slate-400">
-      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
-      本機模式
+    <div class="flex items-center gap-3 text-xs font-bold">
+      <a href="/income.html" class="text-slate-400 hover:text-indigo-600">奉獻收入</a>
+      <a href="/ledger.html" class="text-slate-400 hover:text-indigo-600">記帳</a>
     </div>
   </div>
 </header>
 
-<main class="max-w-4xl mx-auto px-4 pt-6 pb-28">
+<main class="max-w-3xl mx-auto px-4 pt-5 space-y-5">
 
-  <!-- DASHBOARD TAB -->
-  <div id="tab-dashboard" class="tab active animate-in">
-    <!-- Summary Cards -->
-    <div id="summaryCards" class="grid grid-cols-2 gap-3 mb-4"></div>
-    <!-- Settlement -->
-    <div id="settlementSection" class="mb-4"></div>
-    <!-- Expense List -->
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div class="px-5 pt-5 pb-3 flex items-center justify-between">
-        <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest">支出紀錄</h2>
-        <span id="expCount" class="badge bg-slate-100 text-slate-500">0 筆</span>
-      </div>
-      <div id="expenseList" class="px-4 pb-4 space-y-2">
-        <div class="text-center py-10 text-slate-300">
-          <svg class="mx-auto mb-3 w-12 h-12 opacity-30" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-1.5L12 21l3.5-1.5L19 21z"/></svg>
-          <p class="text-sm font-bold">尚無支出紀錄</p>
-          <p class="text-xs mt-1">點擊下方「記帳」開始記錄</p>
-        </div>
-      </div>
-    </div>
+  <div class="card p-4">
+    <p class="text-xs font-bold text-slate-400">此頁公開，任何聖徒皆可查詢與提交請款申請。</p>
   </div>
 
-  <!-- ADD EXPENSE TAB -->
-  <div id="tab-add" class="tab animate-in">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
-      <div class="flex items-center justify-between">
-        <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest">新增支出</h2>
-        <button id="cancelEditBtn" onclick="cancelEdit()" class="hidden text-xs font-bold text-rose-500 px-3 py-1 rounded-lg hover:bg-rose-50">取消編輯</button>
-      </div>
+  <!-- New Request -->
+  <div class="card p-5 space-y-4">
+    <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest">新增請款申請</h2>
 
-      <!-- Mode Toggle -->
-      <div class="flex gap-2">
-        <button onclick="setEntryMode('quick')" id="modeQuick" class="chip selected flex-1 justify-center">快速輸入</button>
-        <button onclick="setEntryMode('itemized')" id="modeItemized" class="chip flex-1 justify-center">明細輸入</button>
-      </div>
-
-      <!-- Date & Description -->
-      <div class="grid grid-cols-2 gap-3">
-        <div class="space-y-1">
-          <label class="text-[10px] font-bold text-slate-400 ml-1">日期</label>
-          <input type="date" id="expDate" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
-        </div>
-        <div class="space-y-1">
-          <label class="text-[10px] font-bold text-slate-400 ml-1">描述</label>
-          <input type="text" id="expDesc" placeholder="例：午餐、交通費" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
-        </div>
-      </div>
-
-      <!-- Currency & Rate -->
-      <div class="grid grid-cols-2 gap-3">
-        <div class="space-y-1">
-          <label class="text-[10px] font-bold text-slate-400 ml-1">幣別</label>
-          <select id="expCurrency" onchange="onCurrencyChange()" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
-            <option value="TWD">🇹🇼 台幣 NT$</option>
-            <option value="JPY">🇯🇵 日圓 ¥</option>
-            <option value="USD">🇺🇸 美金 $</option>
-            <option value="EUR">🇪🇺 歐元 €</option>
-            <option value="HKD">🇭🇰 港幣 HK$</option>
-            <option value="CNY">🇨🇳 人民幣 ¥</option>
-            <option value="KRW">🇰🇷 韓元 ₩</option>
-          </select>
-        </div>
-        <div class="space-y-1" id="rateField">
-          <label class="text-[10px] font-bold text-slate-400 ml-1">匯率 (1外幣=?NT$)</label>
-          <input type="number" id="expRate" step="0.001" placeholder="0.21" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-black text-indigo-600">
-        </div>
-      </div>
-
-      <!-- Quick Mode: Amount -->
-      <div id="quickModeSection">
-        <div class="space-y-1">
-          <label class="text-[10px] font-bold text-slate-400 ml-1">金額</label>
-          <input type="number" id="expAmount" placeholder="0" class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-black text-slate-800">
-        </div>
-        <!-- Adjustments -->
-        <div class="mt-3 space-y-2">
-          <!-- Tax Row -->
-          <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 space-y-2">
-            <div class="flex items-center justify-between">
-              <label class="text-[10px] font-bold text-slate-400">稅率 (%)</label>
-              <!-- Tax Mode Toggle -->
-              <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5">
-                <button onclick="setTaxMode('add')" id="taxModeAdd"
-                  class="text-[10px] font-black px-2 py-1 rounded-md transition-all bg-indigo-600 text-white">
-                  加稅
-                </button>
-                <button onclick="setTaxMode('extract')" id="taxModeExtract"
-                  class="text-[10px] font-black px-2 py-1 rounded-md transition-all text-slate-400">
-                  回推稅
-                </button>
-              </div>
-            </div>
-            <div class="flex items-center gap-2">
-              <input type="number" id="expTax" value="0" step="0.1" placeholder="0"
-                class="flex-1 px-3 py-2 bg-white border border-slate-100 rounded-lg outline-none text-sm font-bold"
-                oninput="updateTotalPreview()">
-              <span class="text-xs text-slate-400 font-bold">%</span>
-            </div>
-            <div id="taxExplain" class="text-[10px] text-slate-400 font-medium hidden"></div>
-          </div>
-          <!-- Discount & Tip -->
-          <div class="grid grid-cols-2 gap-2">
-            <div class="space-y-1">
-              <label class="text-[10px] font-bold text-slate-400 ml-1">折扣 (外幣)</label>
-              <input type="number" id="expDiscount" value="0" class="w-full px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
-            </div>
-            <div class="space-y-1">
-              <label class="text-[10px] font-bold text-slate-400 ml-1">小費</label>
-              <input type="number" id="expTip" value="0" class="w-full px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Itemized Mode -->
-      <div id="itemizedModeSection" class="hidden space-y-3">
-        <div id="itemsList" class="space-y-2"></div>
-        <button onclick="addItem()" class="w-full py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 font-bold text-sm hover:border-indigo-300 hover:text-indigo-400 transition-colors flex items-center justify-center gap-2">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          新增項目
-        </button>
-      </div>
-
-      <!-- Payment Method -->
+    <div class="grid grid-cols-2 gap-3">
       <div class="space-y-1">
-        <label class="text-[10px] font-bold text-slate-400 ml-1">付款方式</label>
-        <div class="flex gap-2">
-          <button onclick="setPayMethod('Cash')" id="payCash" class="chip selected flex-1 justify-center">💵 現金</button>
-          <button onclick="setPayMethod('Credit Card')" id="payCard" class="chip flex-1 justify-center">💳 信用卡</button>
-        </div>
+        <label class="text-[10px] font-bold text-slate-400 ml-1">花費日期</label>
+        <input type="date" id="fDate" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
       </div>
-
-      <!-- Actual TWD (Credit Card) -->
-      <div id="actualTWDField" class="hidden space-y-1">
-        <label class="text-[10px] font-bold text-slate-400 ml-1">實際扣款 NT$ (信用卡對帳單)</label>
-        <input type="number" id="expActualTWD" placeholder="留空則自動計算" class="w-full px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-xl outline-none text-sm font-black text-amber-700">
-      </div>
-
-      <!-- Paid By -->
       <div class="space-y-1">
-        <label class="text-[10px] font-bold text-slate-400 ml-1">誰付的？</label>
-        <select id="expPaidBy" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold"></select>
+        <label class="text-[10px] font-bold text-slate-400 ml-1">請款人</label>
+        <input type="text" id="fRequester" placeholder="姓名" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
       </div>
-
-      <!-- Split With -->
-      <div class="space-y-2">
-        <div class="flex items-center justify-between">
-          <label class="text-[10px] font-bold text-slate-400 ml-1">分攤成員</label>
-          <div class="flex gap-1">
-            <button onclick="selectAllSplit()" class="text-[10px] font-bold text-indigo-500 px-2 py-0.5 rounded-lg hover:bg-indigo-50">全選</button>
-            <button onclick="clearAllSplit()" class="text-[10px] font-bold text-slate-400 px-2 py-0.5 rounded-lg hover:bg-slate-100">清除</button>
-          </div>
-        </div>
-        <div id="splitChips" class="flex flex-wrap gap-2"></div>
-      </div>
-
-      <!-- Split Mode -->
-      <div class="space-y-2">
-        <label class="text-[10px] font-bold text-slate-400 ml-1">分攤方式</label>
-        <div class="flex gap-2">
-          <button onclick="setSplitMode('average')" id="splitAvg" class="chip selected flex-1 justify-center">均分</button>
-          <button onclick="setSplitMode('manual')" id="splitManual" class="chip flex-1 justify-center">手動</button>
-        </div>
-        <div id="manualSplitFields" class="hidden space-y-2 mt-2"></div>
-      </div>
-
-      <!-- Total Preview -->
-      <div class="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 space-y-2">
-        <div id="totalPreviewForeignRow" class="flex items-center justify-between hidden">
-          <span class="text-xs font-bold text-indigo-400">外幣金額</span>
-          <span id="totalPreviewForeign" class="text-xl font-black text-indigo-700">0</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-indigo-400">台幣金額</span>
-          <span id="totalPreview" class="text-xl font-black text-indigo-700">NT$ 0</span>
-        </div>
-      </div>
-
-      <!-- Submit -->
-      <button onclick="submitExpense()" class="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-black text-sm shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 btn-scale transition-all">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        <span id="submitBtnText">新增支出</span>
-      </button>
     </div>
+
+    <div class="space-y-1">
+      <label class="text-[10px] font-bold text-slate-400 ml-1">用途</label>
+      <input type="text" id="fPurpose" placeholder="例：福音茶會茶點、聚會用品採購" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
+    </div>
+
+    <div class="space-y-2">
+      <div class="flex items-center justify-between">
+        <label class="text-[10px] font-bold text-slate-400 ml-1">品項</label>
+        <button onclick="addItemRow()" class="text-[11px] font-bold text-indigo-600 px-2 py-1 rounded-lg hover:bg-indigo-50">+ 新增品項</button>
+      </div>
+      <div id="itemRows" class="space-y-2"></div>
+    </div>
+
+    <div class="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 flex items-center justify-between">
+      <span class="text-xs font-bold text-indigo-400">總金額</span>
+      <span id="totalPreview" class="text-xl font-black text-indigo-700">NT$ 0</span>
+    </div>
+
+    <button onclick="submitRequest()" class="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-black text-sm shadow-lg shadow-indigo-100">送出請款申請</button>
   </div>
 
-  <!-- SETTLE TAB -->
-  <div id="tab-settle" class="tab animate-in space-y-6">
-    <!-- Base Currency -->
-    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
-      <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20 15.3 15.3 0 010-20z"/></svg>
-        記帳幣別
-      </h2>
-      <select id="baseCurrencySelect" onchange="onBaseCurrencyChange()" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
-        <option value="TWD">🇹🇼 台幣 NT$</option>
-        <option value="JPY">🇯🇵 日圓 ¥</option>
-        <option value="USD">🇺🇸 美金 $</option>
-        <option value="EUR">🇪🇺 歐元 €</option>
-        <option value="HKD">🇭🇰 港幣 HK$</option>
-        <option value="CNY">🇨🇳 人民幣 ¥</option>
-        <option value="KRW">🇰🇷 韓元 ₩</option>
-      </select>
-      <p class="text-[11px] text-slate-400 font-medium">新增消費、公帳預繳的預設幣別，總覽統計也會以此幣別呈現（結算時仍會換算成台幣）</p>
+  <!-- List -->
+  <div class="card overflow-hidden">
+    <div class="px-5 pt-5 pb-3 flex items-center justify-between">
+      <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest">請款紀錄</h2>
+      <input type="month" id="monthFilter" class="text-xs font-bold px-2 py-1.5 bg-slate-50 border border-slate-100 rounded-lg outline-none">
     </div>
-
-    <!-- Users -->
-    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-      <div class="flex items-center justify-between">
-        <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-          旅伴管理 (<span id="userCount">0</span>)
-        </h2>
-        <button onclick="clearAll()" class="text-rose-500 text-xs font-bold px-2 py-1 rounded-lg hover:bg-rose-50 transition-colors">清空</button>
-      </div>
-      <div class="flex flex-col gap-2 p-1 bg-slate-50 rounded-2xl border border-slate-100">
-        <textarea id="newUserName" placeholder="輸入姓名 (多位可用逗號分隔)" class="w-full px-4 py-3 bg-white border border-slate-100 rounded-xl outline-none resize-none h-14 text-sm font-medium"></textarea>
-        <button onclick="addUser()" class="bg-indigo-600 text-white py-3 rounded-xl font-black text-sm shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 btn-scale transition-all">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-          批次新增
-        </button>
-      </div>
-      <div id="userGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
-    </div>
-
-    <!-- Deposits -->
-    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-      <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-        <svg width="16" height="16" fill="none" stroke="#10b981" stroke-width="2" viewBox="0 0 24 24"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></svg>
-        公帳預繳紀錄
-      </h2>
-      <div class="grid grid-cols-2 sm:grid-cols-12 gap-2 items-end">
-        <div class="col-span-2 sm:col-span-5 space-y-1">
-          <label class="text-[10px] font-bold text-slate-400 ml-1">誰繳的？</label>
-          <select id="depositUser" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold"></select>
-        </div>
-        <div class="col-span-1 sm:col-span-3 space-y-1">
-          <label class="text-[10px] font-bold text-slate-400 ml-1">幣別</label>
-          <select id="depositCurrency" onchange="onDepositCurrencyChange()" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
-            <option value="TWD">🇹🇼 台幣 NT$</option>
-            <option value="JPY">🇯🇵 日圓 ¥</option>
-            <option value="USD">🇺🇸 美金 $</option>
-            <option value="EUR">🇪🇺 歐元 €</option>
-            <option value="HKD">🇭🇰 港幣 HK$</option>
-            <option value="CNY">🇨🇳 人民幣 ¥</option>
-            <option value="KRW">🇰🇷 韓元 ₩</option>
-          </select>
-        </div>
-        <div class="col-span-1 sm:col-span-4 space-y-1 hidden" id="depositRateField">
-          <label class="text-[10px] font-bold text-slate-400 ml-1">匯率 (1外幣=?NT$)</label>
-          <input type="number" id="depositRate" step="0.001" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-black text-indigo-600">
-        </div>
-        <div class="col-span-2 sm:col-span-9 space-y-1">
-          <label class="text-[10px] font-bold text-slate-400 ml-1">金額</label>
-          <input type="number" id="depositAmount" placeholder="繳交多少金額（依所選幣別）" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-black">
-        </div>
-        <button onclick="addDeposit()" class="col-span-2 sm:col-span-3 bg-emerald-600 text-white py-2.5 rounded-xl font-black text-sm shadow-md shadow-emerald-100 flex items-center justify-center gap-2 btn-scale transition-all">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 紀錄
-        </button>
-      </div>
-      <div id="depositList" class="max-h-40 overflow-y-auto space-y-2 mt-4 pr-1"></div>
-    </div>
-
-    <!-- Sync Code -->
-    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-      <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>
-        同步與代碼
-      </h2>
-      <div class="flex gap-2">
-        <input type="text" id="syncCodeInput" placeholder="共享代碼 (例: JAPAN_TRIP)" class="flex-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white outline-none font-mono text-sm font-bold text-indigo-600">
-        <div class="w-12 h-12 flex items-center justify-center text-indigo-600 bg-indigo-50 rounded-xl border border-indigo-100">
-          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.85 12.15l7.88-7.88"/><path d="m18 4 2 2"/><path d="m15 7 2 2"/></svg>
-        </div>
-      </div>
-      <p class="text-[11px] text-slate-400 font-medium">※ 輸入相同代碼可與他人同步資料（需設定 Firebase）</p>
-    </div>
+    <div id="reqList" class="px-4 pb-5 space-y-2"></div>
   </div>
 
 </main>
 
-<!-- BOTTOM NAV -->
-<nav class="fixed bottom-0 left-0 right-0 z-50 bottom-nav-blur border-t border-slate-200/60" style="padding-bottom:env(safe-area-inset-bottom)">
-  <div class="max-w-lg mx-auto h-16 px-8 flex items-center justify-between">
-    <button class="nav-item" onclick="switchTab('dashboard')" id="nav-dashboard">
-      <div id="navIcon-dashboard" class="w-10 h-10 flex items-center justify-center rounded-xl text-indigo-600 bg-indigo-50 transition-colors">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-      </div>
-      <span id="navLabel-dashboard" class="text-[10px] font-black mt-1 text-indigo-600">總覽</span>
-    </button>
-
-    <button class="nav-item -mt-10" onclick="switchTab('add')" id="nav-add">
-      <div class="w-14 h-14 bg-indigo-600 text-white rounded-full shadow-xl shadow-indigo-200 flex items-center justify-center btn-scale border-4 border-[#F8FAFC]">
-        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </div>
-    </button>
-
-    <button class="nav-item" onclick="switchTab('settle')" id="nav-settle">
-      <div id="navIcon-settle" class="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 transition-colors">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-      </div>
-      <span id="navLabel-settle" class="text-[10px] font-black mt-1 text-slate-400">公帳與成員</span>
-    </button>
-  </div>
-</nav>
-
-</div>
-
-<!-- Expense Detail Modal -->
-<div id="expenseModal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
-  <div class="modal-sheet">
-    <div id="modalContent"></div>
-  </div>
-</div>
-
+<script src="/assets/common.js"></script>
 <script>
-// ===== DATA =====
-const CURRENCIES = {
-  TWD: { symbol: 'NT$', name: '台幣', rate: 1 },
-  JPY: { symbol: '¥', name: '日圓', rate: 0.21 },
-  USD: { symbol: '$', name: '美金', rate: 32.5 },
-  EUR: { symbol: '€', name: '歐元', rate: 35.2 },
-  HKD: { symbol: 'HK$', name: '港幣', rate: 4.15 },
-  CNY: { symbol: '¥', name: '人民幣', rate: 4.45 },
-  KRW: { symbol: '₩', name: '韓元', rate: 0.024 },
-};
+let items = [];
 
-let users = [];
-let expenses = [];
-let deposits = [];
-let baseCurrency = 'TWD';
-let editingId = null;
-let entryMode = 'quick';
-let payMethod = 'Cash';
-let splitMode = 'average';
-let taxMode = 'add'; // 'add' = 加稅, 'extract' = 回推稅
-let selectedSplitUsers = new Set();
-let items = []; // itemized mode
+function genRowId() { return 'r' + Math.random().toString(36).slice(2, 9); }
 
-// Load from localStorage
-function loadData() {
-  try { users = JSON.parse(localStorage.getItem('trip_users')) || []; } catch(e){ users=[]; }
-  try { expenses = JSON.parse(localStorage.getItem('expenses')) || []; } catch(e){ expenses=[]; }
-  try { deposits = JSON.parse(localStorage.getItem('trip_deposits')) || []; } catch(e){ deposits=[]; }
-  baseCurrency = localStorage.getItem('trip_baseCurrency') || 'TWD';
+function addItemRow(name, unit_price, qty) {
+  items.push({ rid: genRowId(), name: name || '', unit_price: unit_price || '', qty: qty || 1 });
+  renderItemRows();
 }
-function saveData() {
-  localStorage.setItem('trip_users', JSON.stringify(users));
-  localStorage.setItem('expenses', JSON.stringify(expenses));
-  localStorage.setItem('trip_deposits', JSON.stringify(deposits));
-  localStorage.setItem('trip_baseCurrency', baseCurrency);
+function removeItemRow(rid) {
+  items = items.filter(i => i.rid !== rid);
+  renderItemRows();
 }
-
-function toBaseAmount(twd) {
-  return baseCurrency === 'TWD' ? twd : twd / CURRENCIES[baseCurrency].rate;
+function updateItemRow(rid, field, value) {
+  const it = items.find(i => i.rid === rid);
+  if (it) it[field] = value;
+  updateTotal();
 }
-function fmtBaseAmount(twd) {
-  return CURRENCIES[baseCurrency].symbol + Math.round(toBaseAmount(twd)).toLocaleString();
-}
-
-function onBaseCurrencyChange() {
-  baseCurrency = document.getElementById('baseCurrencySelect').value;
-  saveData();
-  if (!editingId) {
-    document.getElementById('expCurrency').value = baseCurrency;
-    onCurrencyChange();
-  }
-  document.getElementById('depositCurrency').value = baseCurrency;
-  onDepositCurrencyChange();
-  renderDashboard();
-}
-
-// ===== TAB =====
-let activeTab = 'dashboard';
-function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-' + tab).classList.add('active');
-  // Update nav styles
-  ['dashboard','settle'].forEach(t => {
-    const icon = document.getElementById('navIcon-' + t);
-    const label = document.getElementById('navLabel-' + t);
-    if (icon && label) {
-      if (t === tab) {
-        icon.className = 'w-10 h-10 flex items-center justify-center rounded-xl text-indigo-600 bg-indigo-50 transition-colors';
-        label.className = 'text-[10px] font-black mt-1 text-indigo-600';
-      } else {
-        icon.className = 'w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 transition-colors';
-        label.className = 'text-[10px] font-black mt-1 text-slate-400';
-      }
-    }
-  });
-  activeTab = tab;
-  if (tab === 'dashboard') renderDashboard();
-  if (tab === 'settle') renderSettle();
-  if (tab === 'add') { if (!editingId) resetForm(); renderAddForm(); }
-}
-
-// ===== FORM =====
-function setEntryMode(mode) {
-  const prev = entryMode;
-  entryMode = mode;
-
-  // 同步數值：從舊模式 → 新模式
-  if (prev === 'quick' && mode === 'itemized') {
-    // 快速 → 明細：若明細為空，把快速的金額/稅率/折扣帶入為一筆項目
-    if (items.length === 0) {
-      const amount  = parseFloat(document.getElementById('expAmount').value) || 0;
-      const taxRate = parseFloat(document.getElementById('expTax').value)    || 0;
-      const discount= parseFloat(document.getElementById('expDiscount').value)|| 0;
-      const desc    = document.getElementById('expDesc').value || '項目';
-      if (amount > 0) {
-        items.push({ id: genId(), name: desc, price: amount, taxRate, discount });
-      }
-    } else {
-      // 若明細已有資料，用明細加總更新快速金額（以免衝突）
-      const itemTotal = items.reduce((s, i) => s + i.price, 0);
-      document.getElementById('expAmount').value = itemTotal || '';
-    }
-  } else if (prev === 'itemized' && mode === 'quick') {
-    // 明細 → 快速：把明細加總填回快速金額，稅率/折扣取第一筆項目的值（或保持現有）
-    const itemTotal   = items.reduce((s, i) => s + i.price, 0);
-    const avgTax      = items.length ? items.reduce((s, i) => s + i.taxRate, 0) / items.length : 0;
-    const totalDisc   = items.reduce((s, i) => s + i.discount, 0);
-    if (itemTotal > 0)  document.getElementById('expAmount').value   = itemTotal;
-    if (avgTax > 0)     document.getElementById('expTax').value      = parseFloat(avgTax.toFixed(2));
-    if (totalDisc > 0)  document.getElementById('expDiscount').value = totalDisc;
-  }
-
-  document.getElementById('quickModeSection').classList.toggle('hidden', mode !== 'quick');
-  document.getElementById('itemizedModeSection').classList.toggle('hidden', mode !== 'itemized');
-  document.getElementById('modeQuick').classList.toggle('selected', mode === 'quick');
-  document.getElementById('modeItemized').classList.toggle('selected', mode === 'itemized');
-  renderItemsList();
-  updateTotalPreview();
-}
-
-function setPayMethod(m) {
-  payMethod = m;
-  document.getElementById('payCash').classList.toggle('selected', m === 'Cash');
-  document.getElementById('payCard').classList.toggle('selected', m === 'Credit Card');
-  document.getElementById('actualTWDField').classList.toggle('hidden', m !== 'Credit Card');
-}
-
-function setSplitMode(m) {
-  splitMode = m;
-  document.getElementById('splitAvg').classList.toggle('selected', m === 'average');
-  document.getElementById('splitManual').classList.toggle('selected', m === 'manual');
-  renderManualSplitFields();
-}
-
-function setTaxMode(mode) {
-  taxMode = mode;
-  const addBtn     = document.getElementById('taxModeAdd');
-  const extractBtn = document.getElementById('taxModeExtract');
-  addBtn.className     = 'text-[10px] font-black px-2 py-1 rounded-md transition-all ' + (mode === 'add'     ? 'bg-indigo-600 text-white' : 'text-slate-400');
-  extractBtn.className = 'text-[10px] font-black px-2 py-1 rounded-md transition-all ' + (mode === 'extract' ? 'bg-amber-500 text-white'   : 'text-slate-400');
-  updateTotalPreview();
-}
-
-function onCurrencyChange() {
-  const cur = document.getElementById('expCurrency').value;
-  document.getElementById('expRate').value = CURRENCIES[cur].rate;
-  document.getElementById('rateField').classList.toggle('hidden', cur === 'TWD');
-  updateTotalPreview();
-}
-
-function updateTotalPreview() {
-  const total = calcTotal();
-  document.getElementById('totalPreview').textContent = 'NT$ ' + Math.round(total).toLocaleString();
-
-  // 同時顯示外幣原始金額（與台幣金額同樣大小分開顯示）
-  const cur = document.getElementById('expCurrency').value;
-  const foreignRow = document.getElementById('totalPreviewForeignRow');
-  const foreignEl = document.getElementById('totalPreviewForeign');
-  if (foreignEl && foreignRow) {
-    if (cur !== 'TWD') {
-      const curInfo = CURRENCIES[cur];
-      const subtotalForeign = calcSubtotalOnly();
-      foreignEl.textContent = `${curInfo.symbol}${subtotalForeign.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
-      foreignRow.classList.remove('hidden');
-    } else {
-      foreignRow.classList.add('hidden');
-    }
-  }
-
-  // 顯示稅率說明
-  const explainEl = document.getElementById('taxExplain');
-  if (!explainEl) return;
-  const taxVal = parseFloat(document.getElementById('expTax').value) || 0;
-  const raw    = parseFloat(document.getElementById('expAmount').value) || 0;
-  if (taxVal > 0 && raw > 0 && entryMode === 'quick') {
-    explainEl.classList.remove('hidden');
-    if (taxMode === 'add') {
-      const taxAmt = raw * (taxVal / 100);
-      explainEl.textContent = `加稅後：${raw.toLocaleString()} + ${taxAmt.toFixed(2)} (${taxVal}% 稅) = ${(raw + taxAmt).toFixed(2)}`;
-    } else {
-      const pretax = raw / (1 + taxVal / 100);
-      const taxAmt = raw - pretax;
-      explainEl.textContent = `含稅回推：稅前 ${pretax.toFixed(2)} + 稅 ${taxAmt.toFixed(2)} (${taxVal}%) = ${raw.toLocaleString()}`;
-    }
-  } else {
-    explainEl.classList.add('hidden');
-  }
-}
-
-function calcSubtotalOnly() {
-  let subtotal = 0;
-  if (entryMode === 'quick') {
-    const raw      = parseFloat(document.getElementById('expAmount').value)   || 0;
-    const taxVal   = parseFloat(document.getElementById('expTax').value)      || 0;
-    const discount = parseFloat(document.getElementById('expDiscount').value) || 0;
-    const tip      = parseFloat(document.getElementById('expTip').value)      || 0;
-
-    let taxedAmount;
-    if (taxMode === 'add') {
-      // 加稅：金額 × (1 + 稅率%)
-      taxedAmount = raw * (1 + taxVal / 100);
-    } else {
-      // 回推稅：輸入含稅價，拆出未稅 = 含稅 ÷ (1 + 稅率%)
-      taxedAmount = taxVal > 0 ? raw / (1 + taxVal / 100) : raw;
-    }
-    subtotal = taxedAmount - discount + tip;
-  } else {
-    subtotal = items.reduce((sum, item) => {
-      const base = item.price * (1 + item.taxRate / 100) - item.discount;
-      return sum + base;
-    }, 0);
-  }
-  return subtotal;
-}
-
-function calcTotal() {
-  const cur  = document.getElementById('expCurrency').value;
-  const rate = cur === 'TWD' ? 1 : (parseFloat(document.getElementById('expRate').value) || CURRENCIES[cur].rate);
-  const subtotal = calcSubtotalOnly();
-
-  const actualTWD = payMethod === 'Credit Card' ? (parseFloat(document.getElementById('expActualTWD').value) || 0) : 0;
-  return actualTWD > 0 ? actualTWD : subtotal * rate;
-}
-
-function selectAllSplit() {
-  users.forEach(u => selectedSplitUsers.add(u.id));
-  renderSplitChips();
-  renderManualSplitFields();
-}
-function clearAllSplit() {
-  selectedSplitUsers.clear();
-  renderSplitChips();
-  renderManualSplitFields();
-}
-
-function toggleSplitUser(id) {
-  if (selectedSplitUsers.has(id)) selectedSplitUsers.delete(id);
-  else selectedSplitUsers.add(id);
-  renderSplitChips();
-  renderManualSplitFields();
-  updateTotalPreview();
-}
-
-function renderSplitChips() {
-  const container = document.getElementById('splitChips');
-  if (users.length === 0) {
-    container.innerHTML = '<p class="text-xs text-slate-400">請先在「公帳與成員」新增旅伴</p>';
-    return;
-  }
-  container.innerHTML = users.map(u => `
-    <button onclick="toggleSplitUser('${u.id}')" class="chip ${selectedSplitUsers.has(u.id) ? 'selected' : ''}">${u.name}</button>
-  `).join('');
-}
-
-function renderManualSplitFields() {
-  const container = document.getElementById('manualSplitFields');
-  if (splitMode !== 'manual' || selectedSplitUsers.size === 0) {
-    container.classList.add('hidden');
-    return;
-  }
-  container.classList.remove('hidden');
-  const total = calcTotal();
-  const perPerson = selectedSplitUsers.size > 0 ? Math.round(total / selectedSplitUsers.size) : 0;
-  container.innerHTML = [...selectedSplitUsers].map(uid => {
-    const user = users.find(u => u.id === uid);
-    if (!user) return '';
-    return `
-      <div class="flex items-center gap-2">
-        <span class="text-xs font-bold text-slate-600 w-16 truncate">${user.name}</span>
-        <input type="number" id="manual_${uid}" placeholder="${perPerson}" value="${perPerson}" 
-          class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold"
-          oninput="updateManualTotal()">
-        <span class="text-xs text-slate-400 font-bold">NT$</span>
-      </div>
-    `;
-  }).join('');
-}
-
-function updateManualTotal() {
-  // just update preview
-  updateTotalPreview();
-}
-
-function renderAddForm() {
-  renderSplitChips();
-  // Update paidBy
-  const paidBySelect = document.getElementById('expPaidBy');
-  paidBySelect.innerHTML = `<option value="PUBLIC">🏦 公帳直接支出</option>` +
-    users.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
-  onCurrencyChange();
-}
-
-function resetForm() {
-  editingId = null;
-  entryMode = 'quick';
-  payMethod = 'Cash';
-  splitMode = 'average';
-  taxMode   = 'add';
-  items = [];
-  document.getElementById('expDate').value = new Date().toISOString().split('T')[0];
-  document.getElementById('expDesc').value = '';
-  document.getElementById('expAmount').value = '';
-  document.getElementById('expTax').value = '0';
-  document.getElementById('expDiscount').value = '0';
-  document.getElementById('expTip').value = '0';
-  document.getElementById('expActualTWD').value = '';
-  document.getElementById('expCurrency').value = baseCurrency;
-  document.getElementById('cancelEditBtn').classList.add('hidden');
-  document.getElementById('submitBtnText').textContent = '新增支出';
-  setEntryMode('quick');
-  setPayMethod('Cash');
-  setSplitMode('average');
-  setTaxMode('add');
-  selectedSplitUsers = new Set(users.map(u => u.id));
-  renderItemsList();
-  updateTotalPreview();
-}
-
-// Items (itemized mode)
-function addItem() {
-  items.push({ id: genId(), name: '', price: 0, taxRate: 0, discount: 0 });
-  renderItemsList();
-}
-function removeItem(id) {
-  items = items.filter(i => i.id !== id);
-  renderItemsList();
-  syncItemsToQuick();
-}
-function renderItemsList() {
-  const container = document.getElementById('itemsList');
+function renderItemRows() {
+  const c = document.getElementById('itemRows');
   if (items.length === 0) {
-    container.innerHTML = '<p class="text-xs text-slate-400 text-center py-3">尚無項目，點擊下方新增</p>';
+    c.innerHTML = '<p class="text-xs text-slate-300 text-center py-3">請新增品項</p>';
     return;
   }
-  container.innerHTML = items.map((item, idx) => `
+  c.innerHTML = items.map(it => `
     <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 space-y-2">
       <div class="flex items-center gap-2">
-        <span class="text-xs font-black text-slate-400">#${idx+1}</span>
-        <input type="text" placeholder="項目名稱" value="${item.name}" onchange="updateItem('${item.id}','name',this.value)"
+        <input type="text" placeholder="品名" value="${esc(it.name)}" oninput="updateItemRow('${it.rid}','name',this.value)"
           class="flex-1 px-3 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-sm font-bold">
-        <button onclick="removeItem('${item.id}')" class="text-slate-300 hover:text-rose-500 p-1">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
+        <button onclick="removeItemRow('${it.rid}')" class="text-slate-300 hover:text-rose-500 p-1">✕</button>
       </div>
       <div class="grid grid-cols-3 gap-2">
-        <div>
-          <label class="text-[9px] font-bold text-slate-400">金額</label>
-          <input type="number" placeholder="0" value="${item.price || ''}" oninput="updateItem('${item.id}','price',+this.value)"
-            class="w-full px-2 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-xs font-black">
-        </div>
-        <div>
-          <label class="text-[9px] font-bold text-slate-400">稅率(%)</label>
-          <input type="number" placeholder="0" value="${item.taxRate || ''}" oninput="updateItem('${item.id}','taxRate',+this.value)"
-            class="w-full px-2 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-xs font-bold">
-        </div>
-        <div>
-          <label class="text-[9px] font-bold text-slate-400">折扣</label>
-          <input type="number" placeholder="0" value="${item.discount || ''}" oninput="updateItem('${item.id}','discount',+this.value)"
-            class="w-full px-2 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-xs font-bold">
-        </div>
+        <div><label class="text-[9px] font-bold text-slate-400">單價</label>
+          <input type="number" value="${it.unit_price}" oninput="updateItemRow('${it.rid}','unit_price',+this.value)"
+            class="w-full px-2 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-xs font-black"></div>
+        <div><label class="text-[9px] font-bold text-slate-400">數量</label>
+          <input type="number" value="${it.qty}" oninput="updateItemRow('${it.rid}','qty',+this.value)"
+            class="w-full px-2 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-xs font-black"></div>
+        <div><label class="text-[9px] font-bold text-slate-400">總價</label>
+          <div class="w-full px-2 py-1.5 bg-slate-100 rounded-lg text-xs font-black text-slate-500">${fmtMoney((Number(it.unit_price)||0)*(Number(it.qty)||0))}</div></div>
       </div>
     </div>
   `).join('');
+  updateTotal();
 }
-function updateItem(id, field, value) {
-  const item = items.find(i => i.id === id);
-  if (item) item[field] = value;
-  // 明細有變動時，同步加總回快速模式的金額欄
-  syncItemsToQuick();
-}
-function syncItemsToQuick() {
-  const itemTotal = items.reduce((s, i) => s + (i.price || 0), 0);
-  document.getElementById('expAmount').value = itemTotal > 0 ? itemTotal : '';
-  updateTotalPreview();
+function updateTotal() {
+  const total = items.reduce((s, i) => s + (Number(i.unit_price) || 0) * (Number(i.qty) || 0), 0);
+  document.getElementById('totalPreview').textContent = fmtMoney(total);
 }
 
-function submitExpense() {
-  if (users.length === 0) return alert('請先新增旅伴！');
-  const paidBy = document.getElementById('expPaidBy').value;
-  if (!paidBy) return alert('請選擇付款人！');
-  if (selectedSplitUsers.size === 0) return alert('請選擇分攤成員！');
+async function submitRequest() {
+  const expense_date = document.getElementById('fDate').value;
+  const requester = document.getElementById('fRequester').value.trim();
+  const purpose = document.getElementById('fPurpose').value.trim();
+  if (!expense_date) return toast('請選擇花費日期', true);
+  if (!requester) return toast('請填寫請款人', true);
+  if (!purpose) return toast('請填寫用途', true);
+  const validItems = items.filter(i => i.name && Number(i.unit_price) >= 0 && Number(i.qty) > 0);
+  if (validItems.length === 0) return toast('請至少填寫一項品項', true);
 
-  const cur = document.getElementById('expCurrency').value;
-  const rate = cur === 'TWD' ? 1 : (parseFloat(document.getElementById('expRate').value) || CURRENCIES[cur].rate);
-  const totalTWD = calcTotal();
+  try {
+    await api('/api/expenses', { method: 'POST', body: { expense_date, requester, purpose, items: validItems } });
+    toast('請款申請已送出');
+    document.getElementById('fRequester').value = '';
+    document.getElementById('fPurpose').value = '';
+    items = [];
+    addItemRow();
+    loadList();
+  } catch (e) { toast(e.message, true); }
+}
 
-  // Build splitAmounts
-  const splitList = [...selectedSplitUsers];
-  let splitAmounts = {};
-  if (splitMode === 'average') {
-    const each = totalTWD / splitList.length;
-    splitList.forEach(uid => splitAmounts[uid] = each);
-  } else {
-    splitList.forEach(uid => {
-      splitAmounts[uid] = parseFloat(document.getElementById('manual_' + uid)?.value) || 0;
-    });
-  }
-
-  let subtotal = 0;
-  if (entryMode === 'quick') {
-    subtotal = parseFloat(document.getElementById('expAmount').value) || 0;
-  } else {
-    subtotal = items.reduce((s, i) => s + i.price, 0);
-  }
-
-  const exp = {
-    id: editingId || genId(),
-    date: document.getElementById('expDate').value,
-    description: document.getElementById('expDesc').value || '支出',
-    currency: cur,
-    exchangeRate: rate,
-    paymentMethod: payMethod,
-    actualChargedTWD: payMethod === 'Credit Card' ? (parseFloat(document.getElementById('expActualTWD').value) || undefined) : undefined,
-    paidBy,
-    splitWith: splitList,
-    splitAmounts,
-    totalAmount: subtotal,
-    totalTWD,
-    entryMode,
-    subtotal,
-    splitMode,
-    items: entryMode === 'itemized' ? [...items] : [],
-    overallTaxAdjustment: parseFloat(document.getElementById('expTax').value) || 0,
-    overallDiscount: parseFloat(document.getElementById('expDiscount').value) || 0,
-    overallTip: parseFloat(document.getElementById('expTip').value) || 0,
-    overallTipType: 'fixed',
+function statusBadge(status) {
+  const map = {
+    submitted: ['待記帳', 'bg-amber-100 text-amber-700'],
+    booked: ['已記帳待簽收', 'bg-blue-100 text-blue-700'],
+    archived: ['已完成入帳', 'bg-emerald-100 text-emerald-700']
   };
-
-  if (editingId) {
-    expenses = expenses.map(e => e.id === editingId ? exp : e);
-  } else {
-    expenses.unshift(exp);
-  }
-  saveData();
-  resetForm();
-  switchTab('dashboard');
+  const [label, cls] = map[status] || [status, 'bg-slate-100 text-slate-500'];
+  return `<span class="badge ${cls}">${label}</span>`;
 }
 
-function cancelEdit() {
-  editingId = null;
-  resetForm();
-  switchTab('dashboard');
-}
-
-function editExpense(id) {
-  const exp = expenses.find(e => e.id === id);
-  if (!exp) return;
-  closeModal();
-  editingId = id;
-  entryMode = exp.entryMode || 'quick';
-  payMethod = exp.paymentMethod || 'Cash';
-  splitMode = exp.splitMode || 'average';
-  items = exp.items ? [...exp.items] : [];
-  selectedSplitUsers = new Set(exp.splitWith || []);
-
-  switchTab('add');
-  setTimeout(() => {
-    document.getElementById('expDate').value = exp.date;
-    document.getElementById('expDesc').value = exp.description;
-    document.getElementById('expCurrency').value = exp.currency;
-    document.getElementById('expRate').value = exp.exchangeRate;
-    document.getElementById('expAmount').value = exp.subtotal || exp.totalAmount || 0;
-    document.getElementById('expTax').value = exp.overallTaxAdjustment || 0;
-    document.getElementById('expDiscount').value = exp.overallDiscount || 0;
-    document.getElementById('expTip').value = exp.overallTip || 0;
-    if (exp.actualChargedTWD) document.getElementById('expActualTWD').value = exp.actualChargedTWD;
-    document.getElementById('expPaidBy').value = exp.paidBy;
-    document.getElementById('cancelEditBtn').classList.remove('hidden');
-    document.getElementById('submitBtnText').textContent = '儲存修改';
-    setEntryMode(entryMode);
-    setPayMethod(payMethod);
-    setSplitMode(splitMode);
-    onCurrencyChange();
-    renderSplitChips();
-    renderItemsList();
-    updateTotalPreview();
-  }, 50);
-}
-
-function deleteExpense(id) {
-  if (!confirm('確定刪除此筆支出？')) return;
-  expenses = expenses.filter(e => e.id !== id);
-  saveData();
-  closeModal();
-  renderDashboard();
-}
-
-function deleteExpenseDirect(id) {
-  if (!confirm('確定刪除此筆支出？')) return;
-  expenses = expenses.filter(e => e.id !== id);
-  saveData();
-  renderDashboard();
-}
-
-// ===== DASHBOARD =====
-function renderDashboard() {
-  renderSummaryCards();
-  renderSettlement();
-  renderExpenseList();
-}
-
-function payerName(exp) {
-  if (exp.paidBy === 'PUBLIC') return '公帳';
-  return users.find(u => u.id === exp.paidBy)?.name || '?';
-}
-
-function calcSummary() {
-  const summary = {};
-  users.forEach(u => {
-    summary[u.id] = { user: u, paid: 0, shouldPay: 0 };
-  });
-  expenses.forEach(exp => {
-    if (summary[exp.paidBy]) summary[exp.paidBy].paid += exp.totalTWD;
-    Object.entries(exp.splitAmounts).forEach(([uid, amt]) => {
-      if (summary[uid]) summary[uid].shouldPay += amt;
-    });
-  });
-  deposits.forEach(dep => {
-    if (summary[dep.userId]) summary[dep.userId].paid += dep.amountTWD;
-  });
-  return Object.values(summary).map(s => ({
-    ...s,
-    balance: s.paid - s.shouldPay
-  }));
-}
-
-function renderSummaryCards() {
-  const container = document.getElementById('summaryCards');
-  if (users.length === 0) { container.innerHTML = ''; return; }
-  const summary = calcSummary();
-  const totalSpend = expenses.reduce((s, e) => s + e.totalTWD, 0);
-  const totalDeposits = deposits.reduce((s, d) => s + d.amountTWD, 0);
-  const publicPaidSpend = expenses.filter(e => e.paidBy === 'PUBLIC').reduce((s, e) => s + e.totalTWD, 0);
-  const publicBalance = totalDeposits - publicPaidSpend;
-  const showTWD = baseCurrency !== 'TWD';
-
-  container.innerHTML = `
-    <div class="col-span-2 bg-indigo-600 rounded-2xl p-4 text-white">
-      <div class="text-xs font-bold opacity-70 mb-1">總支出</div>
-      <div class="flex items-baseline gap-3 flex-wrap">
-        <div class="text-2xl font-black">${fmtBaseAmount(totalSpend)}</div>
-        ${showTWD ? `<div class="text-2xl font-black">NT$ ${Math.round(totalSpend).toLocaleString()}</div>` : ''}
-      </div>
-      <div class="text-xs opacity-60 mt-1">${expenses.length} 筆紀錄</div>
-    </div>
-    <div class="col-span-2 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-      <div class="text-xs font-black text-slate-400 mb-1">公帳餘額</div>
-      <div class="flex items-baseline gap-3 flex-wrap">
-        <div class="text-xl font-black ${publicBalance >= 0 ? 'text-emerald-600' : 'text-rose-500'}">${fmtBaseAmount(publicBalance)}</div>
-        ${showTWD ? `<div class="text-xl font-black ${publicBalance >= 0 ? 'text-emerald-600' : 'text-rose-500'}">NT$ ${Math.round(publicBalance).toLocaleString()}</div>` : ''}
-      </div>
-      <div class="text-[10px] text-slate-400 mt-1">預繳 ${fmtBaseAmount(totalDeposits)} − 公帳直接支出 ${fmtBaseAmount(publicPaidSpend)}</div>
-    </div>
-    ${summary.map(s => `
-      <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-        <div class="text-xs font-black text-slate-400 mb-1 truncate">${s.user.name}</div>
-        <div class="flex items-baseline gap-2 flex-wrap">
-          <div class="text-base font-black ${s.balance >= 0 ? 'text-emerald-600' : 'text-rose-500'}">
-            ${s.balance >= 0 ? '+' : ''}${fmtBaseAmount(s.balance)}
+async function loadList() {
+  const month = document.getElementById('monthFilter').value;
+  const qs = month ? ('?month=' + month) : '';
+  try {
+    const data = await api('/api/expenses' + qs);
+    const c = document.getElementById('reqList');
+    if (data.requests.length === 0) {
+      c.innerHTML = '<p class="text-center text-slate-300 text-sm py-8">尚無紀錄</p>';
+      return;
+    }
+    c.innerHTML = data.requests.map(r => `
+      <div class="border border-slate-100 rounded-xl p-3">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="font-black text-sm text-slate-700">${esc(r.purpose)}</div>
+            <div class="text-[11px] text-slate-400 font-medium mt-0.5">花費日期 ${r.expense_date} ・ 請款人 ${esc(r.requester)} ・ 請款日期 ${r.request_date}</div>
           </div>
-          ${showTWD ? `<div class="text-base font-black ${s.balance >= 0 ? 'text-emerald-600' : 'text-rose-500'}">${s.balance >= 0 ? '+' : ''}NT$ ${Math.round(s.balance).toLocaleString()}</div>` : ''}
+          ${statusBadge(r.status)}
         </div>
-        <div class="text-[10px] text-slate-400 mt-1">付 ${fmtBaseAmount(s.paid)} | 應付 ${fmtBaseAmount(s.shouldPay)}</div>
+        <div class="mt-2 flex flex-wrap gap-1">
+          ${r.items.map(it => `<span class="text-[10px] bg-slate-50 border border-slate-100 rounded-lg px-2 py-1 text-slate-500 font-bold">${esc(it.name)} ×${it.qty} = ${fmtMoney(it.total)}</span>`).join('')}
+        </div>
+        <div class="mt-2 text-right font-black text-indigo-600 text-sm">${fmtMoney(r.total_amount)}</div>
       </div>
-    `).join('')}
-  `;
+    `).join('');
+  } catch (e) { toast(e.message, true); }
 }
 
-function renderSettlement() {
-  const container = document.getElementById('settlementSection');
-  if (users.length < 2) { container.innerHTML = ''; return; }
-
-  const summary = calcSummary();
-  const settlements = calcSettlements(summary);
-
-  if (settlements.length === 0) { container.innerHTML = ''; return; }
-  const showTWD = baseCurrency !== 'TWD';
-
-  container.innerHTML = `
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-      <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">結算建議</h2>
-      <div class="space-y-2">
-        ${settlements.map(s => `
-          <div class="flex items-center gap-3 p-3 bg-amber-50 border border-amber-100 rounded-xl">
-            <span class="font-bold text-sm text-slate-700">${s.from}</span>
-            <svg width="16" height="16" fill="none" stroke="#f59e0b" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            <span class="font-bold text-sm text-slate-700">${s.to}</span>
-            <div class="ml-auto flex items-center gap-2 flex-wrap justify-end">
-              <span class="font-black text-amber-600 text-sm">${fmtBaseAmount(s.amount)}</span>
-              ${showTWD ? `<span class="font-black text-amber-600 text-sm">NT$ ${Math.round(s.amount).toLocaleString()}</span>` : ''}
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `;
-}
-
-function calcSettlements(summary) {
-  const debtors = summary.filter(s => s.balance < -1).map(s => ({ name: s.user.name, amount: -s.balance }));
-  const creditors = summary.filter(s => s.balance > 1).map(s => ({ name: s.user.name, amount: s.balance }));
-  const settlements = [];
-  
-  let i = 0, j = 0;
-  while (i < debtors.length && j < creditors.length) {
-    const pay = Math.min(debtors[i].amount, creditors[j].amount);
-    if (pay > 1) settlements.push({ from: debtors[i].name, to: creditors[j].name, amount: pay });
-    debtors[i].amount -= pay;
-    creditors[j].amount -= pay;
-    if (debtors[i].amount < 1) i++;
-    if (creditors[j].amount < 1) j++;
-  }
-  return settlements;
-}
-
-function renderExpenseList() {
-  const container = document.getElementById('expenseList');
-  const countBadge = document.getElementById('expCount');
-  countBadge.textContent = expenses.length + ' 筆';
-  
-  if (expenses.length === 0) {
-    container.innerHTML = `
-      <div class="text-center py-10 text-slate-300">
-        <svg class="mx-auto mb-3 w-12 h-12 opacity-30" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-1.5L12 21l3.5-1.5L19 21z"/></svg>
-        <p class="text-sm font-bold">尚無支出紀錄</p>
-        <p class="text-xs mt-1">點擊下方「記帳」開始記錄</p>
-      </div>`;
-    return;
-  }
-  
-  container.innerHTML = expenses.map(exp => {
-    const cur = CURRENCIES[exp.currency] || CURRENCIES.TWD;
-    const date = exp.date ? new Date(exp.date).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' }) : '';
-    return `
-      <div class="expense-card animate-in">
-        <div class="flex items-start justify-between gap-3" onclick="openExpenseModal('${exp.id}')" style="cursor:pointer">
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-1">
-              <span class="font-black text-sm text-slate-800 truncate">${exp.description}</span>
-              ${exp.currency !== 'TWD' ? `<span class="tag bg-blue-50 text-blue-500">${exp.currency}</span>` : ''}
-              ${exp.paidBy === 'PUBLIC' ? `<span class="tag bg-amber-50 text-amber-600">🏦公帳</span>` : ''}
-              <span class="tag ${exp.paymentMethod === 'Credit Card' ? 'bg-purple-50 text-purple-500' : 'bg-green-50 text-green-500'}">${exp.paymentMethod === 'Credit Card' ? '💳' : '💵'}</span>
-            </div>
-            <div class="text-[11px] text-slate-400 font-medium">
-              ${date} · ${payerName(exp)} 付 · ${exp.splitWith.length}人分
-            </div>
-          </div>
-          <div class="text-right flex-shrink-0">
-            ${exp.currency !== 'TWD' ? `<div class="font-black text-base text-slate-800">${cur.symbol}${exp.totalAmount?.toLocaleString()}</div>` : ''}
-            <div class="font-black text-base text-slate-800">NT$ ${Math.round(exp.totalTWD).toLocaleString()}</div>
-          </div>
-        </div>
-        <div class="flex gap-2 mt-3 pt-3 border-t border-slate-100">
-          <button onclick="editExpense('${exp.id}')" class="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-bold text-indigo-500 bg-indigo-50 hover:bg-indigo-100 transition-colors">
-            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            編輯
-          </button>
-          <button onclick="deleteExpenseDirect('${exp.id}')" class="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-bold text-rose-500 bg-rose-50 hover:bg-rose-100 transition-colors">
-            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
-            刪除
-          </button>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-// ===== MODAL =====
-function openExpenseModal(id) {
-  const exp = expenses.find(e => e.id === id);
-  if (!exp) return;
-  const cur = CURRENCIES[exp.currency] || CURRENCIES.TWD;
-  
-  document.getElementById('modalContent').innerHTML = `
-    <div class="space-y-4">
-      <div class="flex items-start justify-between">
-        <div>
-          <h3 class="text-lg font-black text-slate-800">${exp.description}</h3>
-          <p class="text-xs text-slate-400 font-medium mt-1">${exp.date}</p>
-        </div>
-        <button onclick="closeModal()" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
-      
-      <div class="bg-indigo-50 rounded-xl p-4 space-y-1">
-        <div class="text-xs text-indigo-400 font-bold mb-1">總金額</div>
-        ${exp.currency !== 'TWD' ? `<div class="text-2xl font-black text-indigo-700">${cur.symbol}${exp.totalAmount?.toLocaleString()}</div>` : ''}
-        <div class="text-2xl font-black text-indigo-700">NT$ ${Math.round(exp.totalTWD).toLocaleString()}</div>
-        ${exp.currency !== 'TWD' ? `<div class="text-xs text-indigo-400">匯率 × ${exp.exchangeRate}</div>` : ''}
-      </div>
-      
-      <div class="grid grid-cols-2 gap-3 text-sm">
-        <div class="bg-slate-50 rounded-xl p-3">
-          <div class="text-[10px] font-bold text-slate-400 mb-1">付款人</div>
-          <div class="font-black text-slate-700">${payerName(exp)}</div>
-        </div>
-        <div class="bg-slate-50 rounded-xl p-3">
-          <div class="text-[10px] font-bold text-slate-400 mb-1">付款方式</div>
-          <div class="font-black text-slate-700">${exp.paymentMethod === 'Credit Card' ? '💳 信用卡' : '💵 現金'}</div>
-        </div>
-      </div>
-      
-      <div>
-        <div class="text-[10px] font-bold text-slate-400 mb-2">分攤明細</div>
-        <div class="space-y-1.5">
-          ${Object.entries(exp.splitAmounts).map(([uid, amt]) => {
-            const u = users.find(u => u.id === uid);
-            return `
-              <div class="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-xl">
-                <span class="text-sm font-bold text-slate-700">${u?.name || '?'}</span>
-                <span class="text-sm font-black text-slate-800">NT$ ${Math.round(amt).toLocaleString()}</span>
-              </div>`;
-          }).join('')}
-        </div>
-      </div>
-      
-      <div class="flex gap-2 pt-2">
-        <button onclick="editExpense('${id}')" class="flex-1 py-2.5 bg-indigo-50 text-indigo-600 rounded-xl font-black text-sm flex items-center justify-center gap-2">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          編輯
-        </button>
-        <button onclick="deleteExpense('${id}')" class="flex-1 py-2.5 bg-rose-50 text-rose-500 rounded-xl font-black text-sm flex items-center justify-center gap-2">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
-          刪除
-        </button>
-      </div>
-    </div>`;
-  document.getElementById('expenseModal').classList.add('open');
-}
-function closeModal() {
-  document.getElementById('expenseModal').classList.remove('open');
-}
-
-// ===== SETTLE TAB =====
-function renderSettle() {
-  renderUserGrid();
-  renderDepositList();
-  renderDepositUserSelect();
-  document.getElementById('userCount').textContent = users.length;
-}
-
-function renderUserGrid() {
-  const grid = document.getElementById('userGrid');
-  if (users.length === 0) {
-    grid.innerHTML = '<p class="text-xs text-slate-400 col-span-3 text-center py-4">尚無旅伴</p>';
-    return;
-  }
-  grid.innerHTML = users.map(u => `
-    <div class="flex items-center justify-between p-2 pl-3 bg-slate-50 border border-slate-100 rounded-xl">
-      <span class="font-bold text-slate-700 text-xs truncate">${u.name}</span>
-      <button onclick="removeUser('${u.id}')" class="text-slate-300 hover:text-rose-500 p-1">
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
-      </button>
-    </div>
-  `).join('');
-}
-
-function renderDepositUserSelect() {
-  const sel = document.getElementById('depositUser');
-  sel.innerHTML = users.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
-}
-
-function renderDepositList() {
-  const container = document.getElementById('depositList');
-  if (deposits.length === 0) {
-    container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">尚無預繳紀錄</p>';
-    return;
-  }
-  container.innerHTML = [...deposits].reverse().map(d => {
-    const u = users.find(u => u.id === d.userId);
-    const dCur = d.currency || 'TWD';
-    const cur = CURRENCIES[dCur] || CURRENCIES.TWD;
-    const amt = d.amount ?? d.amountTWD;
-    return `
-      <div class="flex items-center justify-between p-2 pl-3 bg-slate-50 rounded-xl border border-slate-100 animate-in">
-        <div class="flex items-center gap-3 flex-wrap">
-          <span class="text-xs font-bold text-slate-700">${u?.name || '?'}</span>
-          <span class="text-xs font-black text-emerald-600">預繳公帳 ${cur.symbol}${amt.toLocaleString()}</span>
-          ${dCur !== 'TWD' ? `<span class="text-xs font-black text-emerald-600">NT$ ${Math.round(d.amountTWD).toLocaleString()}</span>` : ''}
-        </div>
-        <button onclick="removeDeposit('${d.id}')" class="text-slate-300 hover:text-rose-500 p-1">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
-        </button>
-      </div>`;
-  }).join('');
-}
-
-function addUser() {
-  const val = document.getElementById('newUserName').value;
-  const names = val.split(/[,，\n\s]+/).map(n => n.trim()).filter(n => n !== '');
-  if (names.length === 0) return;
-  names.forEach(name => users.push({ id: genId(), name }));
-  document.getElementById('newUserName').value = '';
-  saveData();
-  renderSettle();
-  renderAddForm(); // refresh split chips
-  document.getElementById('userCount').textContent = users.length;
-}
-
-function removeUser(id) {
-  const u = users.find(u => u.id === id);
-  if (!u) return;
-  if (!confirm(`確定移除「${u.name}」？`)) return;
-  users = users.filter(u => u.id !== id);
-  saveData();
-  renderSettle();
-}
-
-function onDepositCurrencyChange() {
-  const cur = document.getElementById('depositCurrency').value;
-  document.getElementById('depositRate').value = CURRENCIES[cur].rate;
-  document.getElementById('depositRateField').classList.toggle('hidden', cur === 'TWD');
-}
-
-function addDeposit() {
-  const userId = document.getElementById('depositUser').value;
-  const cur = document.getElementById('depositCurrency').value;
-  const rate = cur === 'TWD' ? 1 : (parseFloat(document.getElementById('depositRate').value) || CURRENCIES[cur].rate);
-  const amount = parseFloat(document.getElementById('depositAmount').value);
-  if (!amount || amount <= 0) return alert('請輸入金額！');
-  const amountTWD = cur === 'TWD' ? amount : amount * rate;
-  deposits.push({ id: genId(), userId, currency: cur, exchangeRate: rate, amount, amountTWD, date: new Date().toISOString() });
-  document.getElementById('depositAmount').value = '';
-  document.getElementById('depositCurrency').value = baseCurrency;
-  onDepositCurrencyChange();
-  saveData();
-  renderDepositList();
-  if (activeTab === 'dashboard') renderDashboard();
-}
-
-function removeDeposit(id) {
-  if (!confirm('確定移除此筆預繳紀錄？')) return;
-  deposits = deposits.filter(d => d.id !== id);
-  saveData();
-  renderDepositList();
-  if (activeTab === 'dashboard') renderDashboard();
-}
-
-function clearAll() {
-  if (!confirm('確定清空所有資料？')) return;
-  users = []; expenses = []; deposits = [];
-  saveData();
-  renderSettle();
-  renderDashboard();
-}
-
-// ===== UTILS =====
-function genId() {
-  return Math.random().toString(36).substr(2, 9) + Date.now().toString(36).substr(-4);
-}
-
-// ===== INIT =====
-loadData();
-selectedSplitUsers = new Set(users.map(u => u.id));
-document.getElementById('expDate').value = new Date().toISOString().split('T')[0];
-document.getElementById('baseCurrencySelect').value = baseCurrency;
-document.getElementById('expCurrency').value = baseCurrency;
-document.getElementById('depositCurrency').value = baseCurrency;
-onDepositCurrencyChange();
-renderDashboard();
-renderAddForm();
-
-// Input listeners for live preview
-['expAmount','expTax','expDiscount','expTip','expRate','expActualTWD'].forEach(id => {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener('input', updateTotalPreview);
-});
+document.getElementById('fDate').value = todayStr();
+document.getElementById('monthFilter').addEventListener('change', loadList);
+addItemRow();
+loadList();
 </script>
 </body>
 </html>
