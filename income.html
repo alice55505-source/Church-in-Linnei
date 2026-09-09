@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>林內召會收支記帳 - 奉獻收入</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#059669">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -42,6 +45,13 @@
 
   <!-- Main Content -->
   <div id="mainContent" class="hidden space-y-5">
+
+    <div id="reminderBanner" class="hidden"></div>
+
+    <div class="card p-4 flex items-center justify-between gap-3">
+      <p class="text-xs font-bold text-slate-500">啟用後，個人奉獻包逾一週未簽收時會發送提醒通知</p>
+      <button onclick="enablePushNotifications()" class="shrink-0 text-[11px] bg-slate-100 text-slate-600 px-3 py-2 rounded-lg font-black">啟用提醒通知</button>
+    </div>
 
     <div class="card p-5 space-y-4">
       <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest">新增開奉獻箱紀錄</h2>
@@ -142,6 +152,7 @@ async function checkLogin() {
     document.getElementById('mainContent').classList.remove('hidden');
     document.getElementById('logoutBtn').classList.remove('hidden');
     loadSessions();
+    api('/api/reminders/check').catch(() => {});
   } else {
     document.getElementById('loginGate').classList.remove('hidden');
     document.getElementById('mainContent').classList.add('hidden');
@@ -205,7 +216,20 @@ async function loadSessions() {
     const data = await api('/api/income');
     sessions = data.sessions;
     renderSessions();
+    renderReminderBanner();
   } catch (e) { toast(e.message, true); }
+}
+
+function renderReminderBanner() {
+  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+  let pending = 0;
+  sessions.forEach(s => (s.personal_offerings || []).forEach(o => {
+    if (!o.recipient_signature_key && o.created_at && new Date(o.created_at).getTime() <= weekAgo) pending++;
+  }));
+  const el = document.getElementById('reminderBanner');
+  if (pending === 0) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+  el.classList.remove('hidden');
+  el.innerHTML = `<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs font-bold text-amber-700">⚠️ 有 ${pending} 筆個人奉獻包已逾一週未簽收，請盡快處理</div>`;
 }
 
 function renderSessions() {
@@ -282,6 +306,7 @@ async function archiveSession(id) {
 document.getElementById('sDate').value = todayStr();
 addOfferingRow();
 checkLogin();
+registerSW();
 </script>
 </body>
 </html>

@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>林內召會收支記帳 - 記帳</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#1e293b">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -48,6 +51,13 @@
   </div>
 
   <div id="mainContent" class="hidden space-y-5">
+    <div id="reminderBanner" class="hidden space-y-2"></div>
+
+    <div class="card p-4 flex items-center justify-between gap-3">
+      <p class="text-xs font-bold text-slate-500">啟用後，經常費、月結對帳、請款單逾期會發送提醒通知</p>
+      <button onclick="enablePushNotifications()" class="shrink-0 text-[11px] bg-slate-100 text-slate-600 px-3 py-2 rounded-lg font-black">啟用提醒通知</button>
+    </div>
+
     <div class="flex gap-1 overflow-x-auto pb-1">
       <button class="tabbtn active" data-tab="expenses" onclick="switchTab('expenses')">支出記帳</button>
       <button class="tabbtn" data-tab="income" onclick="switchTab('income')">收入總覽</button>
@@ -144,6 +154,8 @@ async function checkLogin() {
     document.getElementById('mainContent').classList.remove('hidden');
     document.getElementById('logoutBtn').classList.remove('hidden');
     loadExpenses();
+    loadReminderBanner();
+    api('/api/reminders/check').catch(() => {});
   } else {
     document.getElementById('loginGate').classList.remove('hidden');
     document.getElementById('mainContent').classList.add('hidden');
@@ -169,6 +181,38 @@ async function changePw() {
     document.getElementById('oldPw').value = '';
     document.getElementById('newPw').value = '';
   } catch (e) { toast(e.message, true); }
+}
+
+async function loadReminderBanner() {
+  const el = document.getElementById('reminderBanner');
+  const warnings = [];
+  const month = thisMonthStr();
+
+  try {
+    const reg = await api('/api/ledger/regular?month=' + month);
+    if (reg.items.length === 0 || !reg.items.every(i => i.status === 'confirmed')) {
+      warnings.push('本月召會經常費支出尚未完成，請至「經常費支出」頁處理');
+    }
+  } catch (e) {}
+
+  try {
+    const recon = await api('/api/ledger/reconciliation?month=' + month);
+    if (!recon.exists || recon.record.status !== 'confirmed') {
+      warnings.push('本月銀行帳戶對帳尚未完成，請至「月結對帳」頁處理');
+    }
+  } catch (e) {}
+
+  try {
+    const exp = await api('/api/ledger/expenses');
+    const twoWeeksAgo = Date.now() - 14 * 24 * 3600 * 1000;
+    const all = [...exp.unbooked, ...exp.entries.filter(e => e.status !== 'finalized').map(e => ({ created_at: e.request_created_at }))];
+    const overdue = all.filter(r => r.created_at && new Date(r.created_at).getTime() <= twoWeeksAgo).length;
+    if (overdue > 0) warnings.push(`有 ${overdue} 筆請款單已逾兩週未完成入帳，請至「支出記帳」頁處理`);
+  } catch (e) {}
+
+  if (warnings.length === 0) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+  el.classList.remove('hidden');
+  el.innerHTML = warnings.map(w => `<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs font-bold text-amber-700">⚠️ ${w}</div>`).join('');
 }
 
 function receiptThumbsHTML(receipts) {
@@ -463,6 +507,7 @@ document.getElementById('regularMonth').addEventListener('change', loadRegular);
 document.getElementById('reconMonth').addEventListener('change', loadRecon);
 document.getElementById('printMonth').addEventListener('change', loadPrintStatus);
 checkLogin();
+registerSW();
 </script>
 </body>
 </html>

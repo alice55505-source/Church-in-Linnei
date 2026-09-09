@@ -34,8 +34,8 @@ export async function onRequestPatch({ request, env, params }) {
 
   if (action === 'add_offering') {
     if (!body.person_name) return badRequest('缺少奉獻人姓名');
-    await env.DB.prepare('INSERT INTO personal_offerings (id, session_id, church_name, person_name, bag_count) VALUES (?,?,?,?,?)')
-      .bind(uid(), row.id, body.church_name || '', String(body.person_name).slice(0, 100), Number(body.bag_count) || 1).run();
+    await env.DB.prepare('INSERT INTO personal_offerings (id, session_id, church_name, person_name, bag_count, created_at) VALUES (?,?,?,?,?,?)')
+      .bind(uid(), row.id, body.church_name || '', String(body.person_name).slice(0, 100), Number(body.bag_count) || 1, nowISO()).run();
     return json({ ok: true });
   }
 

@@ -35,8 +35,8 @@ export async function onRequestPost({ request, env }) {
     for (const p of personal_offerings) {
       if (!p || !p.person_name) continue;
       stmts.push(
-        env.DB.prepare('INSERT INTO personal_offerings (id, session_id, church_name, person_name, bag_count) VALUES (?,?,?,?,?)')
-          .bind(uid(), id, p.church_name || '', String(p.person_name).slice(0, 100), Number(p.bag_count) || 1)
+        env.DB.prepare('INSERT INTO personal_offerings (id, session_id, church_name, person_name, bag_count, created_at) VALUES (?,?,?,?,?,?)')
+          .bind(uid(), id, p.church_name || '', String(p.person_name).slice(0, 100), Number(p.bag_count) || 1, now)
       );
     }
   }

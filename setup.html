@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>林內召會收支記帳 - 初始設定</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#4338CA">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 <script src="https://cdn.tailwindcss.com"></script>
 <style>body{font-family:'Inter',"Microsoft JhengHei",sans-serif;background:#F8FAFC;} input{font-size:16px!important;}</style>
 </head>
@@ -38,6 +41,7 @@ async function doSetup() {
     setTimeout(() => location.href = '/income.html', 1200);
   } catch (e) { toast(e.message, true); }
 }
+registerSW();
 </script>
 </body>
 </html>

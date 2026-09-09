@@ -1,3 +1,40 @@
+async function registerSW() {
+  if ('serviceWorker' in navigator) {
+    try { await navigator.serviceWorker.register('/sw.js'); } catch (e) {}
+  }
+}
+
+function urlBase64ToUint8Array(base64) {
+  const padding = '='.repeat((4 - base64.length % 4) % 4);
+  const base64safe = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64safe);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function enablePushNotifications() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    toast('此瀏覽器不支援推播通知', true);
+    return false;
+  }
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { toast('未取得通知權限', true); return false; }
+    const reg = await navigator.serviceWorker.ready;
+    const { key } = await api('/api/push/vapid-public-key');
+    if (!key) { toast('系統尚未設定推播金鑰（VAPID_PUBLIC_KEY）', true); return false; }
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(key) });
+    }
+    await api('/api/push/subscribe', { method: 'POST', body: { subscription: sub.toJSON() } });
+    toast('已啟用提醒通知');
+    return true;
+  } catch (e) {
+    toast(e.message || '啟用通知失敗', true);
+    return false;
+  }
+}
+
 async function api(path, options = {}) {
   const opts = Object.assign({ credentials: 'include' }, options);
   if (opts.body && typeof opts.body !== 'string' && !(opts.body instanceof FormData)) {
