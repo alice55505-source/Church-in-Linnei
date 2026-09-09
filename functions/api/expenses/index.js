@@ -15,13 +15,15 @@ export async function onRequestGet({ request, env }) {
   for (const r of results) {
     const items = await env.DB.prepare('SELECT * FROM expense_items WHERE request_id=? ORDER BY rowid').bind(r.id).all();
     r.items = items.results;
+    const receipts = await env.DB.prepare('SELECT * FROM expense_request_receipts WHERE request_id=? ORDER BY created_at').bind(r.id).all();
+    r.receipts = receipts.results;
   }
   return json({ requests: results });
 }
 
 export async function onRequestPost({ request, env }) {
   const body = await request.json().catch(() => ({}));
-  const { expense_date, purpose, requester, items } = body;
+  const { expense_date, purpose, requester, items, receipt_keys } = body;
   if (!expense_date || !purpose || !requester || !Array.isArray(items) || items.length === 0) {
     return badRequest('請填寫花費日期、用途、請款人與至少一項品項');
   }
@@ -37,6 +39,10 @@ export async function onRequestPost({ request, env }) {
     return { id: uid(), name: String(it.name || '').slice(0, 200), unit_price, qty, total: t };
   });
 
+  const safeReceiptKeys = Array.isArray(receipt_keys)
+    ? receipt_keys.filter(k => typeof k === 'string' && /^receipts\/[A-Za-z0-9._-]+$/.test(k)).slice(0, 10)
+    : [];
+
   const stmts = [
     env.DB.prepare(
       `INSERT INTO expense_requests (id, expense_date, purpose, requester, request_date, total_amount, status, created_at)
@@ -45,6 +51,10 @@ export async function onRequestPost({ request, env }) {
     ...itemRows.map(it =>
       env.DB.prepare(`INSERT INTO expense_items (id, request_id, name, unit_price, qty, total) VALUES (?,?,?,?,?,?)`)
         .bind(it.id, id, it.name, it.unit_price, it.qty, it.total)
+    ),
+    ...safeReceiptKeys.map(key =>
+      env.DB.prepare(`INSERT INTO expense_request_receipts (id, request_id, file_key, created_at) VALUES (?,?,?,?)`)
+        .bind(uid(), id, key, now)
     )
   ];
   await env.DB.batch(stmts);

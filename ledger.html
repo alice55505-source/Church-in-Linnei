@@ -171,6 +171,16 @@ async function changePw() {
   } catch (e) { toast(e.message, true); }
 }
 
+function receiptThumbsHTML(receipts) {
+  if (!receipts || receipts.length === 0) return '';
+  return `<div class="flex flex-wrap gap-1">${receipts.map(rc => {
+    const isPdf = rc.file_key.toLowerCase().endsWith('.pdf');
+    return isPdf
+      ? `<a href="${fileUrl(rc.file_key)}" target="_blank" class="text-[10px] bg-slate-50 border border-slate-100 rounded-lg px-2 py-1 text-slate-500 font-bold">📄 PDF</a>`
+      : `<a href="${fileUrl(rc.file_key)}" target="_blank"><img src="${fileUrl(rc.file_key)}" class="w-10 h-10 object-cover rounded-lg border border-slate-200"></a>`;
+  }).join('')}</div>`;
+}
+
 /* ===== 支出記帳 ===== */
 async function loadExpenses() {
   try {
@@ -178,12 +188,15 @@ async function loadExpenses() {
     const u = document.getElementById('unbookedList');
     u.innerHTML = data.unbooked.length === 0 ? '<p class="text-xs text-slate-300 text-center py-3">無待記帳項目</p>' :
       data.unbooked.map(r => `
-        <div class="border border-slate-100 rounded-xl p-3 flex items-center justify-between gap-2">
-          <div>
-            <div class="font-bold text-sm text-slate-700">${esc(r.purpose)}</div>
-            <div class="text-[11px] text-slate-400 font-medium">${r.expense_date} ・ ${esc(r.requester)} ・ ${fmtMoney(r.total_amount)}</div>
+        <div class="border border-slate-100 rounded-xl p-3 space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <div class="font-bold text-sm text-slate-700">${esc(r.purpose)}</div>
+              <div class="text-[11px] text-slate-400 font-medium">${r.expense_date} ・ ${esc(r.requester)} ・ ${fmtMoney(r.total_amount)}</div>
+            </div>
+            <button onclick="bookExpense('${r.id}')" class="bg-slate-800 text-white px-3 py-1.5 rounded-lg font-black text-xs shrink-0">記帳</button>
           </div>
-          <button onclick="bookExpense('${r.id}')" class="bg-slate-800 text-white px-3 py-1.5 rounded-lg font-black text-xs shrink-0">記帳</button>
+          ${receiptThumbsHTML(r.receipts)}
         </div>
       `).join('');
 
@@ -198,6 +211,7 @@ async function loadExpenses() {
             </div>
             <span class="badge ${e.status === 'finalized' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${e.status === 'finalized' ? '已入帳' : '記帳中'}</span>
           </div>
+          ${receiptThumbsHTML(e.receipts)}
           ${e.status !== 'finalized' ? `
           <div class="flex flex-wrap gap-2">
             ${e.incharge_signature_key ? '<span class="text-[10px] text-emerald-600 font-bold">負責弟兄已簽名</span>' :

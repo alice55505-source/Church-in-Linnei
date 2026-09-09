@@ -63,6 +63,17 @@
       <div id="itemRows" class="space-y-2"></div>
     </div>
 
+    <div class="space-y-2">
+      <div class="flex items-center justify-between">
+        <label class="text-[10px] font-bold text-slate-400 ml-1">發票／收據照片</label>
+        <label class="text-[11px] font-bold text-indigo-600 px-2 py-1 rounded-lg hover:bg-indigo-50 cursor-pointer">
+          + 上傳照片
+          <input type="file" accept="image/*,application/pdf" capture="environment" multiple class="hidden" onchange="handleReceiptUpload(this)">
+        </label>
+      </div>
+      <div id="receiptThumbs" class="flex flex-wrap gap-2"></div>
+    </div>
+
     <div class="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 flex items-center justify-between">
       <span class="text-xs font-bold text-indigo-400">總金額</span>
       <span id="totalPreview" class="text-xl font-black text-indigo-700">NT$ 0</span>
@@ -85,8 +96,42 @@
 <script src="/assets/common.js"></script>
 <script>
 let items = [];
+let receiptKeys = [];
 
 function genRowId() { return 'r' + Math.random().toString(36).slice(2, 9); }
+
+async function handleReceiptUpload(input) {
+  const files = Array.from(input.files || []);
+  input.value = '';
+  for (const file of files) {
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/expenses/upload', { method: 'POST', body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || '上傳失敗');
+      receiptKeys.push(data.key);
+      renderReceiptThumbs();
+    } catch (e) { toast(e.message, true); }
+  }
+}
+function removeReceipt(key) {
+  receiptKeys = receiptKeys.filter(k => k !== key);
+  renderReceiptThumbs();
+}
+function receiptThumbHTML(key, removable) {
+  const isPdf = key.toLowerCase().endsWith('.pdf');
+  const body = isPdf
+    ? `<div class="w-16 h-16 flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-[10px] font-black text-slate-500">PDF</div>`
+    : `<img src="${fileUrl(key)}" class="w-16 h-16 object-cover rounded-lg border border-slate-200">`;
+  return `<div class="relative">${body}${removable ? `<button onclick="removeReceipt('${key}')" class="absolute -top-1.5 -right-1.5 bg-rose-500 text-white rounded-full w-5 h-5 text-[10px] font-black flex items-center justify-center">✕</button>` : ''}</div>`;
+}
+function renderReceiptThumbs() {
+  const c = document.getElementById('receiptThumbs');
+  c.innerHTML = receiptKeys.length === 0
+    ? '<p class="text-xs text-slate-300">尚未上傳照片</p>'
+    : receiptKeys.map(k => receiptThumbHTML(k, true)).join('');
+}
 
 function addItemRow(name, unit_price, qty) {
   items.push({ rid: genRowId(), name: name || '', unit_price: unit_price || '', qty: qty || 1 });
@@ -144,12 +189,14 @@ async function submitRequest() {
   if (validItems.length === 0) return toast('請至少填寫一項品項', true);
 
   try {
-    await api('/api/expenses', { method: 'POST', body: { expense_date, requester, purpose, items: validItems } });
+    await api('/api/expenses', { method: 'POST', body: { expense_date, requester, purpose, items: validItems, receipt_keys: receiptKeys } });
     toast('請款申請已送出');
     document.getElementById('fRequester').value = '';
     document.getElementById('fPurpose').value = '';
     items = [];
+    receiptKeys = [];
     addItemRow();
+    renderReceiptThumbs();
     loadList();
   } catch (e) { toast(e.message, true); }
 }
@@ -186,6 +233,7 @@ async function loadList() {
         <div class="mt-2 flex flex-wrap gap-1">
           ${r.items.map(it => `<span class="text-[10px] bg-slate-50 border border-slate-100 rounded-lg px-2 py-1 text-slate-500 font-bold">${esc(it.name)} ×${it.qty} = ${fmtMoney(it.total)}</span>`).join('')}
         </div>
+        ${r.receipts && r.receipts.length ? `<div class="mt-2 flex flex-wrap gap-2">${r.receipts.map(rc => receiptThumbHTML(rc.file_key, false)).join('')}</div>` : ''}
         <div class="mt-2 text-right font-black text-indigo-600 text-sm">${fmtMoney(r.total_amount)}</div>
       </div>
     `).join('');
@@ -195,6 +243,7 @@ async function loadList() {
 document.getElementById('fDate').value = todayStr();
 document.getElementById('monthFilter').addEventListener('change', loadList);
 addItemRow();
+renderReceiptThumbs();
 loadList();
 </script>
 </body>

@@ -11,6 +11,8 @@ export async function onRequestGet({ request, env }) {
   for (const r of unbooked.results) {
     const items = await env.DB.prepare('SELECT * FROM expense_items WHERE request_id=? ORDER BY rowid').bind(r.id).all();
     r.items = items.results;
+    const receipts = await env.DB.prepare('SELECT * FROM expense_request_receipts WHERE request_id=? ORDER BY created_at').bind(r.id).all();
+    r.receipts = receipts.results;
   }
 
   const { results: booked } = await env.DB.prepare(`
@@ -18,6 +20,10 @@ export async function onRequestGet({ request, env }) {
     FROM ledger_expenses le JOIN expense_requests er ON er.id = le.request_id
     ORDER BY er.expense_date DESC, le.booked_at DESC
   `).all();
+  for (const e of booked) {
+    const receipts = await env.DB.prepare('SELECT * FROM expense_request_receipts WHERE request_id=? ORDER BY created_at').bind(e.request_id).all();
+    e.receipts = receipts.results;
+  }
 
   return json({ unbooked: unbooked.results, entries: booked });
 }
