@@ -1,0 +1,12 @@
+name = "linnei-church-accounting"
+compatibility_date = "2026-09-01"
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "DB"
+database_name = "linnei-church-accounting-db"
+database_id = "df7ba1f4-2a60-417e-ad1e-9ea9776de272"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "linnei-church-accounting-files"

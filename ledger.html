@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>林內召會收支記帳 - 記帳</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#1e293b">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family:'Inter',"Microsoft JhengHei",sans-serif; background:#F8FAFC; }
+  input, select, textarea { font-size:16px !important; }
+  .card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; }
+  .badge { display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; font-size:10px; font-weight:800; }
+  .tabbtn { padding:8px 12px; border-radius:10px; font-size:12px; font-weight:800; color:#94a3b8; white-space:nowrap; }
+  .tabbtn.active { background:#4338ca; color:#fff; }
+  .tab { display:none; }
+  .tab.active { display:block; }
+  #printArea { display:none; }
+  @media print {
+    body > *:not(#printArea) { display:none !important; }
+    #printArea { display:block !important; }
+  }
+</style>
+</head>
+<body class="text-slate-900 min-h-screen pb-16">
+
+<header class="sticky top-0 z-40 bg-white/85 backdrop-blur border-b border-slate-200/60">
+  <div class="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 bg-slate-800 rounded-xl flex items-center justify-center text-white font-black text-sm">林</div>
+      <span class="font-black text-slate-800 text-sm">記帳（不公開）</span>
+    </div>
+    <div class="flex items-center gap-3 text-xs font-bold">
+      <a href="/" class="text-slate-400 hover:text-indigo-600">請款</a>
+      <button id="logoutBtn" onclick="doLogout()" class="hidden text-rose-500">登出</button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-3xl mx-auto px-4 pt-5 space-y-5">
+
+  <div id="loginGate" class="card p-6 space-y-3">
+    <h2 class="text-sm font-black text-slate-500">請輸入記帳密碼</h2>
+    <input type="password" id="loginPw" placeholder="密碼" class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
+    <button onclick="doLogin()" class="w-full bg-slate-800 text-white py-3 rounded-xl font-black text-sm">登入</button>
+    <p class="text-[11px] text-slate-400">首次使用請先至 <a href="/setup.html" class="text-indigo-500 underline">初始設定頁</a> 設定密碼。</p>
+  </div>
+
+  <div id="mainContent" class="hidden space-y-5">
+    <div id="reminderBanner" class="hidden space-y-2"></div>
+
+    <div class="card p-4 flex items-center justify-between gap-3">
+      <p class="text-xs font-bold text-slate-500">啟用後，經常費、月結對帳、請款單逾期會發送提醒通知</p>
+      <button onclick="enablePushNotifications()" class="shrink-0 text-[11px] bg-slate-100 text-slate-600 px-3 py-2 rounded-lg font-black">啟用提醒通知</button>
+    </div>
+
+    <div class="flex gap-1 overflow-x-auto pb-1">
+      <button class="tabbtn active" data-tab="expenses" onclick="switchTab('expenses')">支出記帳</button>
+      <button class="tabbtn" data-tab="income" onclick="switchTab('income')">收入總覽</button>
+      <button class="tabbtn" data-tab="regular" onclick="switchTab('regular')">經常費支出</button>
+      <button class="tabbtn" data-tab="recon" onclick="switchTab('recon')">月結對帳</button>
+      <button class="tabbtn" data-tab="print" onclick="switchTab('print')">列印報表</button>
+    </div>
+
+    <!-- ===== 支出記帳 ===== -->
+    <div id="tab-expenses" class="tab active space-y-4">
+      <div class="card p-4">
+        <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">待記帳請款單</h2>
+        <div id="unbookedList" class="space-y-2"></div>
+      </div>
+      <div class="card p-4">
+        <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">記帳中 / 已入帳</h2>
+        <div id="ledgerExpList" class="space-y-2"></div>
+      </div>
+    </div>
+
+    <!-- ===== 收入總覽 ===== -->
+    <div id="tab-income" class="tab space-y-4">
+      <div class="card p-4">
+        <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">奉獻收入（唯讀，已歸檔）</h2>
+        <div id="incomeOverview" class="space-y-2"></div>
+      </div>
+    </div>
+
+    <!-- ===== 經常費支出 ===== -->
+    <div id="tab-regular" class="tab space-y-4">
+      <div class="card p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest">召會經常費支出</h2>
+          <input type="month" id="regularMonth" class="text-xs font-bold px-2 py-1.5 bg-slate-50 border border-slate-100 rounded-lg outline-none">
+        </div>
+        <div class="flex gap-2">
+          <input type="text" id="regName" placeholder="項目名稱" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
+          <input type="number" id="regAmount" placeholder="金額" class="w-24 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
+          <button onclick="addRegularItem()" class="bg-slate-800 text-white px-3 rounded-xl font-black text-xs">新增</button>
+        </div>
+        <div id="regularList" class="space-y-2"></div>
+      </div>
+    </div>
+
+    <!-- ===== 月結對帳 ===== -->
+    <div id="tab-recon" class="tab space-y-4">
+      <div class="card p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest">每月銀行帳戶對帳</h2>
+          <input type="month" id="reconMonth" class="text-xs font-bold px-2 py-1.5 bg-slate-50 border border-slate-100 rounded-lg outline-none">
+        </div>
+        <div id="reconContent"></div>
+      </div>
+    </div>
+
+    <!-- ===== 列印報表 ===== -->
+    <div id="tab-print" class="tab space-y-4">
+      <div class="card p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest">列印林內鄉召會收支表</h2>
+          <input type="month" id="printMonth" class="text-xs font-bold px-2 py-1.5 bg-slate-50 border border-slate-100 rounded-lg outline-none">
+        </div>
+        <div id="printStatus"></div>
+      </div>
+    </div>
+
+    <div class="card p-5 space-y-3">
+      <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest">變更記帳密碼</h2>
+      <input type="password" id="oldPw" placeholder="原密碼" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
+      <input type="password" id="newPw" placeholder="新密碼" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
+      <button onclick="changePw()" class="w-full bg-slate-100 text-slate-600 py-2.5 rounded-xl font-black text-sm">變更密碼</button>
+    </div>
+  </div>
+</main>
+
+<div id="printArea"></div>
+
+<script src="/assets/common.js"></script>
+<script>
+function switchTab(t) {
+  document.querySelectorAll('.tabbtn').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
+  document.querySelectorAll('.tab').forEach(el => el.classList.toggle('active', el.id === 'tab-' + t));
+  if (t === 'expenses') loadExpenses();
+  if (t === 'income') loadIncomeOverview();
+  if (t === 'regular') loadRegular();
+  if (t === 'recon') loadRecon();
+  if (t === 'print') loadPrintStatus();
+}
+
+async function checkLogin() {
+  const me = await api('/api/auth/me');
+  if (me.tier === 'ledger') {
+    document.getElementById('loginGate').classList.add('hidden');
+    document.getElementById('mainContent').classList.remove('hidden');
+    document.getElementById('logoutBtn').classList.remove('hidden');
+    loadExpenses();
+    loadReminderBanner();
+    api('/api/reminders/check').catch(() => {});
+  } else {
+    document.getElementById('loginGate').classList.remove('hidden');
+    document.getElementById('mainContent').classList.add('hidden');
+  }
+}
+async function doLogin() {
+  const password = document.getElementById('loginPw').value;
+  if (!password) return toast('請輸入密碼', true);
+  try {
+    await api('/api/auth/login', { method: 'POST', body: { tier: 'ledger', password } });
+    document.getElementById('loginPw').value = '';
+    checkLogin();
+  } catch (e) { toast(e.message, true); }
+}
+async function doLogout() { await api('/api/auth/logout', { method: 'POST' }); location.reload(); }
+async function changePw() {
+  const oldPassword = document.getElementById('oldPw').value;
+  const newPassword = document.getElementById('newPw').value;
+  if (!oldPassword || !newPassword) return toast('請填寫完整', true);
+  try {
+    await api('/api/auth/change-password', { method: 'POST', body: { tier: 'ledger', oldPassword, newPassword } });
+    toast('密碼已更新');
+    document.getElementById('oldPw').value = '';
+    document.getElementById('newPw').value = '';
+  } catch (e) { toast(e.message, true); }
+}
+
+async function loadReminderBanner() {
+  const el = document.getElementById('reminderBanner');
+  const warnings = [];
+  const month = thisMonthStr();
+
+  try {
+    const reg = await api('/api/ledger/regular?month=' + month);
+    if (reg.items.length === 0 || !reg.items.every(i => i.status === 'confirmed')) {
+      warnings.push('本月召會經常費支出尚未完成，請至「經常費支出」頁處理');
+    }
+  } catch (e) {}
+
+  try {
+    const recon = await api('/api/ledger/reconciliation?month=' + month);
+    if (!recon.exists || recon.record.status !== 'confirmed') {
+      warnings.push('本月銀行帳戶對帳尚未完成，請至「月結對帳」頁處理');
+    }
+  } catch (e) {}
+
+  try {
+    const exp = await api('/api/ledger/expenses');
+    const twoWeeksAgo = Date.now() - 14 * 24 * 3600 * 1000;
+    const all = [...exp.unbooked, ...exp.entries.filter(e => e.status !== 'finalized').map(e => ({ created_at: e.request_created_at }))];
+    const overdue = all.filter(r => r.created_at && new Date(r.created_at).getTime() <= twoWeeksAgo).length;
+    if (overdue > 0) warnings.push(`有 ${overdue} 筆請款單已逾兩週未完成入帳，請至「支出記帳」頁處理`);
+  } catch (e) {}
+
+  if (warnings.length === 0) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+  el.classList.remove('hidden');
+  el.innerHTML = warnings.map(w => `<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs font-bold text-amber-700">⚠️ ${w}</div>`).join('');
+}
+
+function receiptThumbsHTML(receipts) {
+  if (!receipts || receipts.length === 0) return '';
+  return `<div class="flex flex-wrap gap-1">${receipts.map(rc => {
+    const isPdf = rc.file_key.toLowerCase().endsWith('.pdf');
+    return isPdf
+      ? `<a href="${fileUrl(rc.file_key)}" target="_blank" class="text-[10px] bg-slate-50 border border-slate-100 rounded-lg px-2 py-1 text-slate-500 font-bold">📄 PDF</a>`
+      : `<a href="${fileUrl(rc.file_key)}" target="_blank"><img src="${fileUrl(rc.file_key)}" class="w-10 h-10 object-cover rounded-lg border border-slate-200"></a>`;
+  }).join('')}</div>`;
+}
+
+/* ===== 支出記帳 ===== */
+async function loadExpenses() {
+  try {
+    const data = await api('/api/ledger/expenses');
+    const u = document.getElementById('unbookedList');
+    u.innerHTML = data.unbooked.length === 0 ? '<p class="text-xs text-slate-300 text-center py-3">無待記帳項目</p>' :
+      data.unbooked.map(r => `
+        <div class="border border-slate-100 rounded-xl p-3 space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <div class="font-bold text-sm text-slate-700">${esc(r.purpose)}</div>
+              <div class="text-[11px] text-slate-400 font-medium">${r.expense_date} ・ ${esc(r.requester)} ・ ${fmtMoney(r.total_amount)}</div>
+            </div>
+            <button onclick="bookExpense('${r.id}')" class="bg-slate-800 text-white px-3 py-1.5 rounded-lg font-black text-xs shrink-0">記帳</button>
+          </div>
+          ${receiptThumbsHTML(r.receipts)}
+        </div>
+      `).join('');
+
+    const l = document.getElementById('ledgerExpList');
+    l.innerHTML = data.entries.length === 0 ? '<p class="text-xs text-slate-300 text-center py-3">尚無紀錄</p>' :
+      data.entries.map(e => `
+        <div class="border border-slate-100 rounded-xl p-3 space-y-2">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="font-bold text-sm text-slate-700">${esc(e.purpose)}</div>
+              <div class="text-[11px] text-slate-400 font-medium">${e.expense_date} ・ ${esc(e.requester)} ・ ${fmtMoney(e.total_amount)}</div>
+            </div>
+            <span class="badge ${e.status === 'finalized' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${e.status === 'finalized' ? '已入帳' : '記帳中'}</span>
+          </div>
+          ${receiptThumbsHTML(e.receipts)}
+          ${e.status !== 'finalized' ? `
+          <div class="flex flex-wrap gap-2">
+            ${e.incharge_signature_key ? '<span class="text-[10px] text-emerald-600 font-bold">負責弟兄已簽名</span>' :
+              `<button onclick="ledgerSignIncharge('${e.id}')" class="text-[11px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">負責弟兄簽名</button>`}
+            ${e.receipt_proof_key ? '<span class="text-[10px] text-emerald-600 font-bold">已上傳簽收/轉帳截圖</span>' :
+              `<label class="text-[11px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black cursor-pointer">上傳簽收照片
+                <input type="file" accept="image/*" capture="environment" class="hidden" onchange="ledgerAttachReceipt('${e.id}', this)"></label>`}
+            <button onclick="ledgerFinalize('${e.id}')" class="text-[11px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認入帳</button>
+          </div>` : ''}
+        </div>
+      `).join('');
+  } catch (err) { toast(err.message, true); }
+}
+async function bookExpense(id) {
+  const booked_by = prompt('記帳人（選填）') || '';
+  try { await api('/api/ledger/expenses', { method: 'POST', body: { request_id: id, booked_by } }); toast('已建立記帳項目'); loadExpenses(); }
+  catch (e) { toast(e.message, true); }
+}
+async function ledgerSignIncharge(id) {
+  const sig = await askForSignature('負責弟兄簽名');
+  if (!sig) return;
+  try { await api('/api/ledger/expenses/' + id, { method: 'PATCH', body: { action: 'sign_incharge', signature: sig } }); toast('已簽名'); loadExpenses(); }
+  catch (e) { toast(e.message, true); }
+}
+async function ledgerAttachReceipt(id, input) {
+  const file = input.files[0];
+  if (!file) return;
+  try {
+    const key = await uploadFile(file);
+    await api('/api/ledger/expenses/' + id, { method: 'PATCH', body: { action: 'attach_receipt', file_key: key } });
+    toast('已上傳');
+    loadExpenses();
+  } catch (e) { toast(e.message, true); }
+}
+async function ledgerFinalize(id) {
+  try { await api('/api/ledger/expenses/' + id, { method: 'PATCH', body: { action: 'finalize' } }); toast('已入帳'); loadExpenses(); }
+  catch (e) { toast(e.message, true); }
+}
+
+/* ===== 收入總覽 ===== */
+async function loadIncomeOverview() {
+  try {
+    const data = await api('/api/income');
+    const archived = data.sessions.filter(s => s.status === 'archived');
+    const c = document.getElementById('incomeOverview');
+    c.innerHTML = archived.length === 0 ? '<p class="text-xs text-slate-300 text-center py-3">尚無已歸檔紀錄</p>' :
+      archived.map(s => `
+        <div class="border border-slate-100 rounded-xl p-3 text-xs font-bold text-slate-600">
+          <div class="flex justify-between"><span>${s.session_date}</span><span class="text-indigo-600">${fmtMoney(s.amount_general + s.amount_fulltime + s.amount_taiwan_gospel + s.amount_overseas + s.amount_other)}</span></div>
+        </div>
+      `).join('');
+  } catch (e) { toast(e.message, true); }
+}
+
+/* ===== 經常費支出 ===== */
+async function loadRegular() {
+  const month = document.getElementById('regularMonth').value || thisMonthStr();
+  document.getElementById('regularMonth').value = month;
+  try {
+    const data = await api('/api/ledger/regular?month=' + month);
+    const c = document.getElementById('regularList');
+    c.innerHTML = data.items.length === 0 ? '<p class="text-xs text-slate-300 text-center py-3">尚無項目</p>' :
+      data.items.map(it => `
+        <div class="border border-slate-100 rounded-xl p-3 space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="font-bold text-sm text-slate-700">${esc(it.name)} <span class="text-indigo-600">${fmtMoney(it.amount)}</span></div>
+            <span class="badge ${it.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${it.status === 'confirmed' ? '已完成' : '未完成'}</span>
+          </div>
+          ${it.status !== 'confirmed' ? `
+          <div class="flex flex-wrap gap-2">
+            ${it.payment_proof_key ? '<span class="text-[10px] text-emerald-600 font-bold">已上傳轉帳記錄</span>' :
+              `<label class="text-[11px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black cursor-pointer">上傳轉帳記錄
+                <input type="file" accept="image/*" capture="environment" class="hidden" onchange="regularAttachProof('${it.id}', this)"></label>`}
+            ${it.incharge_signature_key ? '<span class="text-[10px] text-emerald-600 font-bold">負責弟兄已簽名</span>' :
+              `<button onclick="regularSignIncharge('${it.id}')" class="text-[11px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">負責弟兄簽名</button>`}
+            <button onclick="regularConfirm('${it.id}')" class="text-[11px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認完成</button>
+            <button onclick="regularDelete('${it.id}')" class="text-[11px] bg-rose-50 text-rose-500 px-2 py-1.5 rounded-lg font-black">刪除</button>
+          </div>` : ''}
+        </div>
+      `).join('');
+  } catch (e) { toast(e.message, true); }
+}
+async function addRegularItem() {
+  const month = document.getElementById('regularMonth').value || thisMonthStr();
+  const name = document.getElementById('regName').value.trim();
+  const amount = document.getElementById('regAmount').value;
+  if (!name) return toast('請輸入項目名稱', true);
+  try {
+    await api('/api/ledger/regular', { method: 'POST', body: { month, name, amount } });
+    document.getElementById('regName').value = '';
+    document.getElementById('regAmount').value = '';
+    loadRegular();
+  } catch (e) { toast(e.message, true); }
+}
+async function regularAttachProof(id, input) {
+  const file = input.files[0];
+  if (!file) return;
+  try {
+    const key = await uploadFile(file);
+    await api('/api/ledger/regular/' + id, { method: 'PATCH', body: { action: 'attach_payment_proof', file_key: key } });
+    toast('已上傳'); loadRegular();
+  } catch (e) { toast(e.message, true); }
+}
+async function regularSignIncharge(id) {
+  const sig = await askForSignature('負責弟兄簽名');
+  if (!sig) return;
+  try { await api('/api/ledger/regular/' + id, { method: 'PATCH', body: { action: 'sign_incharge', signature: sig } }); toast('已簽名'); loadRegular(); }
+  catch (e) { toast(e.message, true); }
+}
+async function regularConfirm(id) {
+  try { await api('/api/ledger/regular/' + id, { method: 'PATCH', body: { action: 'confirm' } }); toast('已確認完成'); loadRegular(); }
+  catch (e) { toast(e.message, true); }
+}
+async function regularDelete(id) {
+  if (!confirm('確定刪除？')) return;
+  try { await api('/api/ledger/regular/' + id, { method: 'DELETE' }); loadRegular(); }
+  catch (e) { toast(e.message, true); }
+}
+
+/* ===== 月結對帳 ===== */
+async function loadRecon() {
+  const month = document.getElementById('reconMonth').value || thisMonthStr();
+  document.getElementById('reconMonth').value = month;
+  try {
+    const data = await api('/api/ledger/reconciliation?month=' + month);
+    const c = document.getElementById('reconContent');
+    const computed = fmtMoney(data.computed_balance);
+    if (!data.exists) {
+      c.innerHTML = `
+        <p class="text-xs text-slate-500 font-bold">記帳累計結餘：${computed}</p>
+        <div class="space-y-2 mt-2">
+          <input type="number" id="bankBalance" placeholder="銀行帳戶實際餘額" class="w-full px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
+          <label class="block text-[11px] bg-slate-100 text-slate-600 px-3 py-2 rounded-xl font-black cursor-pointer text-center">
+            上傳存簿照片 / 網銀截圖
+            <input type="file" accept="image/*" capture="environment" class="hidden" id="bankFile">
+          </label>
+          <button onclick="submitRecon('${month}')" class="w-full bg-slate-800 text-white py-2.5 rounded-xl font-black text-sm">送出本月對帳</button>
+        </div>`;
+      return;
+    }
+    const r = data.record;
+    const diff = (r.bank_balance || 0) - (r.computed_balance || 0);
+    c.innerHTML = `
+      <div class="text-xs font-bold text-slate-600 space-y-1">
+        <div>記帳累計結餘：${fmtMoney(r.computed_balance)}</div>
+        <div>銀行帳戶餘額：${fmtMoney(r.bank_balance)}</div>
+        <div class="${diff === 0 ? 'text-emerald-600' : 'text-rose-500'}">差額：${fmtMoney(diff)}${diff === 0 ? '（相符）' : ''}</div>
+        <img src="${fileUrl(r.bank_statement_key)}" class="rounded-xl border border-slate-100 mt-2 max-h-48">
+      </div>
+      <span class="badge ${r.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'} mt-2 inline-block">${r.status === 'confirmed' ? '本月已完成' : '待簽名'}</span>
+      ${r.status !== 'confirmed' ? `
+      <div class="flex flex-wrap gap-2 mt-2">
+        ${r.cashier_signature_key ? '<span class="text-[10px] text-emerald-600 font-bold">出納已簽名</span>' : `<button onclick="reconSign('${month}','cashier')" class="text-[11px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">出納簽名</button>`}
+        ${r.accountant_signature_key ? '<span class="text-[10px] text-emerald-600 font-bold">會計已簽名</span>' : `<button onclick="reconSign('${month}','accountant')" class="text-[11px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">會計簽名</button>`}
+        ${r.incharge_signature_key ? '<span class="text-[10px] text-emerald-600 font-bold">負責弟兄已簽名</span>' : `<button onclick="reconSign('${month}','incharge')" class="text-[11px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">負責弟兄簽名</button>`}
+        <button onclick="reconConfirm('${month}')" class="text-[11px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認完成</button>
+      </div>` : ''}
+    `;
+  } catch (e) { toast(e.message, true); }
+}
+async function submitRecon(month) {
+  const bank_balance = document.getElementById('bankBalance').value;
+  const fileInput = document.getElementById('bankFile');
+  const file = fileInput.files[0];
+  if (!file) return toast('請上傳存簿照片或網銀截圖', true);
+  try {
+    const file_key = await uploadFile(file);
+    await api('/api/ledger/reconciliation', { method: 'POST', body: { month, bank_balance, file_key } });
+    toast('已送出，待三方簽名');
+    loadRecon();
+  } catch (e) { toast(e.message, true); }
+}
+async function reconSign(month, role) {
+  const roleLabel = { cashier: '出納', accountant: '會計', incharge: '負責弟兄' }[role];
+  const sig = await askForSignature(roleLabel + '簽名');
+  if (!sig) return;
+  try { await api('/api/ledger/reconciliation/' + month, { method: 'PATCH', body: { action: 'sign', role, signature: sig } }); toast('已簽名'); loadRecon(); }
+  catch (e) { toast(e.message, true); }
+}
+async function reconConfirm(month) {
+  try { await api('/api/ledger/reconciliation/' + month, { method: 'PATCH', body: { action: 'confirm' } }); toast('本月結算完成'); loadRecon(); }
+  catch (e) { toast(e.message, true); }
+}
+
+/* ===== 列印報表 ===== */
+async function loadPrintStatus() {
+  const month = document.getElementById('printMonth').value || thisMonthStr();
+  document.getElementById('printMonth').value = month;
+  try {
+    const data = await api('/api/ledger/summary?month=' + month);
+    const c = document.getElementById('printStatus');
+    if (!data.ready) {
+      const reasons = [];
+      if (!data.reasons.allExpensesSettled) reasons.push('尚有支出未完成入帳');
+      if (!data.reasons.allIncomeArchived) reasons.push('尚有奉獻收入未歸檔');
+      if (!data.reasons.allRegularConfirmed) reasons.push('尚有經常費支出未確認完成');
+      if (!data.reasons.reconciliationDone) reasons.push('本月銀行對帳尚未完成');
+      c.innerHTML = `<p class="text-xs text-rose-500 font-bold mb-1">本月帳款尚未全部結算完成，無法列印：</p>
+        <ul class="text-xs text-slate-500 list-disc pl-4">${reasons.map(r => `<li>${r}</li>`).join('')}</ul>`;
+      return;
+    }
+    c.innerHTML = `<button onclick="printStatement('${month}')" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-black text-sm">列印收支表（PDF）</button>`;
+    window.__printData = data;
+  } catch (e) { toast(e.message, true); }
+}
+function printStatement(month) {
+  const data = window.__printData;
+  const t = data.totals;
+  const html = `
+    <div style="padding:32px;font-family:'Microsoft JhengHei',sans-serif;color:#111;">
+      <h1 style="text-align:center;font-size:20px;font-weight:900;margin-bottom:4px;">林內鄉召會收支表</h1>
+      <p style="text-align:center;font-size:13px;color:#555;margin-bottom:20px;">${month}</p>
+
+      <h2 style="font-size:14px;font-weight:900;border-bottom:1px solid #333;padding-bottom:4px;margin-top:16px;">支出明細</h2>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;">
+        <tr style="background:#eee;"><th style="border:1px solid #ccc;padding:4px;">日期</th><th style="border:1px solid #ccc;padding:4px;">用途</th><th style="border:1px solid #ccc;padding:4px;">請款人</th><th style="border:1px solid #ccc;padding:4px;">金額</th></tr>
+        ${data.expenses.map(e => `<tr><td style="border:1px solid #ccc;padding:4px;">${e.expense_date}</td><td style="border:1px solid #ccc;padding:4px;">${esc(e.purpose)}</td><td style="border:1px solid #ccc;padding:4px;">${esc(e.requester)}</td><td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(e.total_amount)}</td></tr>`).join('')}
+        ${data.regular.filter(r=>r.status==='confirmed').map(r => `<tr><td style="border:1px solid #ccc;padding:4px;">${month}</td><td style="border:1px solid #ccc;padding:4px;">${esc(r.name)}（經常費）</td><td style="border:1px solid #ccc;padding:4px;">-</td><td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(r.amount)}</td></tr>`).join('')}
+      </table>
+
+      <h2 style="font-size:14px;font-weight:900;border-bottom:1px solid #333;padding-bottom:4px;margin-top:20px;">收入明細</h2>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;">
+        <tr style="background:#eee;"><th style="border:1px solid #ccc;padding:4px;">日期</th><th style="border:1px solid #ccc;padding:4px;">召會經常費</th><th style="border:1px solid #ccc;padding:4px;">全時間供給</th><th style="border:1px solid #ccc;padding:4px;">臺灣福音工作</th><th style="border:1px solid #ccc;padding:4px;">海外開展</th><th style="border:1px solid #ccc;padding:4px;">其他</th></tr>
+        ${data.incomeSessions.map(s => `<tr><td style="border:1px solid #ccc;padding:4px;">${s.session_date}</td><td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(s.amount_general)}</td><td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(s.amount_fulltime)}</td><td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(s.amount_taiwan_gospel)}</td><td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(s.amount_overseas)}</td><td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(s.amount_other)}</td></tr>`).join('')}
+      </table>
+
+      <h2 style="font-size:14px;font-weight:900;border-bottom:1px solid #333;padding-bottom:4px;margin-top:20px;">收支統計</h2>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:6px;">
+        <tr><td style="padding:4px;">本月收入合計</td><td style="padding:4px;text-align:right;">${fmtMoney(t.totalIncome)}</td></tr>
+        <tr><td style="padding:4px;">本月支出合計</td><td style="padding:4px;text-align:right;">${fmtMoney(t.totalExpense)}</td></tr>
+        <tr style="font-weight:900;"><td style="padding:4px;">累計結餘</td><td style="padding:4px;text-align:right;">${fmtMoney(t.cumulativeBalance)}</td></tr>
+      </table>
+
+      <div style="display:flex;justify-content:space-around;margin-top:60px;font-size:12px;text-align:center;">
+        <div>出納：_____________________</div>
+        <div>會計：_____________________</div>
+        <div>負責弟兄：_____________________</div>
+      </div>
+    </div>
+  `;
+  document.getElementById('printArea').innerHTML = html;
+  setTimeout(() => window.print(), 100);
+}
+
+document.getElementById('regularMonth').value = thisMonthStr();
+document.getElementById('reconMonth').value = thisMonthStr();
+document.getElementById('printMonth').value = thisMonthStr();
+document.getElementById('regularMonth').addEventListener('change', loadRegular);
+document.getElementById('reconMonth').addEventListener('change', loadRecon);
+document.getElementById('printMonth').addEventListener('change', loadPrintStatus);
+checkLogin();
+registerSW();
+</script>
+</body>
+</html>

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>林內召會收支記帳 - 奉獻收入</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#059669">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family:'Inter',"Microsoft JhengHei",sans-serif; background:#F8FAFC; }
+  input, select, textarea { font-size:16px !important; }
+  .card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; }
+  .badge { display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; font-size:10px; font-weight:800; }
+</style>
+</head>
+<body class="text-slate-900 min-h-screen pb-16">
+
+<header class="sticky top-0 z-40 bg-white/85 backdrop-blur border-b border-slate-200/60">
+  <div class="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-sm">林</div>
+      <span class="font-black text-slate-800 text-sm">奉獻收入（不公開）</span>
+    </div>
+    <div class="flex items-center gap-3 text-xs font-bold">
+      <a href="/" class="text-slate-400 hover:text-indigo-600">請款</a>
+      <a href="/ledger.html" class="text-slate-400 hover:text-indigo-600">記帳</a>
+      <button id="logoutBtn" onclick="doLogout()" class="hidden text-rose-500">登出</button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-3xl mx-auto px-4 pt-5 space-y-5">
+
+  <!-- Login Gate -->
+  <div id="loginGate" class="card p-6 space-y-3">
+    <h2 class="text-sm font-black text-slate-500">請輸入奉獻收入密碼</h2>
+    <input type="password" id="loginPw" placeholder="密碼" class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
+    <button onclick="doLogin()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-black text-sm">登入</button>
+    <p class="text-[11px] text-slate-400">首次使用請先至 <a href="/setup.html" class="text-indigo-500 underline">初始設定頁</a> 設定密碼。</p>
+  </div>
+
+  <!-- Main Content -->
+  <div id="mainContent" class="hidden space-y-5">
+
+    <div id="reminderBanner" class="hidden"></div>
+
+    <div class="card p-4 flex items-center justify-between gap-3">
+      <p class="text-xs font-bold text-slate-500">啟用後，個人奉獻包逾一週未簽收時會發送提醒通知</p>
+      <button onclick="enablePushNotifications()" class="shrink-0 text-[11px] bg-slate-100 text-slate-600 px-3 py-2 rounded-lg font-black">啟用提醒通知</button>
+    </div>
+
+    <div class="card p-5 space-y-4">
+      <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest">新增開奉獻箱紀錄</h2>
+      <div class="space-y-1">
+        <label class="text-[10px] font-bold text-slate-400 ml-1">開箱日期</label>
+        <input type="date" id="sDate" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
+      </div>
+      <div class="grid grid-cols-1 gap-2">
+        <div class="flex items-center gap-2">
+          <span class="w-32 text-xs font-bold text-slate-500 shrink-0">為召會經常費用</span>
+          <input type="number" id="aGeneral" placeholder="0" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-black">
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-32 text-xs font-bold text-slate-500 shrink-0">為全時間供給用</span>
+          <input type="number" id="aFulltime" placeholder="0" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-black">
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-32 text-xs font-bold text-slate-500 shrink-0">為臺灣福音工作用</span>
+          <input type="number" id="aTaiwan" placeholder="0" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-black">
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-32 text-xs font-bold text-slate-500 shrink-0">為海外開展用</span>
+          <input type="number" id="aOverseas" placeholder="0" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-black">
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-32 text-xs font-bold text-slate-500 shrink-0">其他</span>
+          <input type="number" id="aOther" placeholder="0" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-black">
+        </div>
+        <input type="text" id="otherNote" placeholder="其他項目備註" class="px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-xs font-bold">
+      </div>
+
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <label class="text-[10px] font-bold text-slate-400 ml-1">個人奉獻（只記幾包，不記金額）</label>
+          <button onclick="addOfferingRow()" class="text-[11px] font-bold text-emerald-600 px-2 py-1 rounded-lg hover:bg-emerald-50">+ 新增</button>
+        </div>
+        <div id="offeringRows" class="space-y-2"></div>
+      </div>
+
+      <button onclick="submitSession()" class="w-full bg-emerald-600 text-white py-3.5 rounded-xl font-black text-sm shadow-lg shadow-emerald-100">暫存本次紀錄</button>
+    </div>
+
+    <div class="card overflow-hidden">
+      <div class="px-5 pt-5 pb-3">
+        <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest">奉獻收入紀錄</h2>
+      </div>
+      <div id="sessionList" class="px-4 pb-5 space-y-3"></div>
+    </div>
+
+    <div class="card p-5 space-y-3">
+      <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest">變更奉獻收入密碼</h2>
+      <input type="password" id="oldPw" placeholder="原密碼" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
+      <input type="password" id="newPw" placeholder="新密碼" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
+      <button onclick="changePw()" class="w-full bg-slate-100 text-slate-600 py-2.5 rounded-xl font-black text-sm">變更密碼</button>
+    </div>
+  </div>
+
+</main>
+
+<script src="/assets/common.js"></script>
+<script>
+let offerings = [];
+let sessions = [];
+
+function genRowId() { return 'o' + Math.random().toString(36).slice(2, 9); }
+function addOfferingRow() {
+  offerings.push({ rid: genRowId(), church_name: '', person_name: '', bag_count: 1 });
+  renderOfferingRows();
+}
+function removeOfferingRow(rid) {
+  offerings = offerings.filter(o => o.rid !== rid);
+  renderOfferingRows();
+}
+function updateOfferingRow(rid, field, value) {
+  const o = offerings.find(o => o.rid === rid);
+  if (o) o[field] = value;
+}
+function renderOfferingRows() {
+  const c = document.getElementById('offeringRows');
+  if (offerings.length === 0) { c.innerHTML = '<p class="text-xs text-slate-300 text-center py-2">無個人奉獻項目</p>'; return; }
+  c.innerHTML = offerings.map(o => `
+    <div class="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-xl p-2">
+      <input type="text" placeholder="召會" value="${esc(o.church_name)}" oninput="updateOfferingRow('${o.rid}','church_name',this.value)"
+        class="w-20 px-2 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-xs font-bold">
+      <input type="text" placeholder="弟兄/姊妹姓名" value="${esc(o.person_name)}" oninput="updateOfferingRow('${o.rid}','person_name',this.value)"
+        class="flex-1 px-2 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-xs font-bold">
+      <input type="number" placeholder="幾包" value="${o.bag_count}" oninput="updateOfferingRow('${o.rid}','bag_count',+this.value)"
+        class="w-16 px-2 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-xs font-black">
+      <button onclick="removeOfferingRow('${o.rid}')" class="text-slate-300 hover:text-rose-500 px-1">✕</button>
+    </div>
+  `).join('');
+}
+
+async function checkLogin() {
+  const me = await api('/api/auth/me');
+  if (me.tier) {
+    document.getElementById('loginGate').classList.add('hidden');
+    document.getElementById('mainContent').classList.remove('hidden');
+    document.getElementById('logoutBtn').classList.remove('hidden');
+    loadSessions();
+    api('/api/reminders/check').catch(() => {});
+  } else {
+    document.getElementById('loginGate').classList.remove('hidden');
+    document.getElementById('mainContent').classList.add('hidden');
+  }
+}
+
+async function doLogin() {
+  const password = document.getElementById('loginPw').value;
+  if (!password) return toast('請輸入密碼', true);
+  try {
+    await api('/api/auth/login', { method: 'POST', body: { tier: 'income', password } });
+    document.getElementById('loginPw').value = '';
+    checkLogin();
+  } catch (e) { toast(e.message, true); }
+}
+async function doLogout() {
+  await api('/api/auth/logout', { method: 'POST' });
+  location.reload();
+}
+async function changePw() {
+  const oldPassword = document.getElementById('oldPw').value;
+  const newPassword = document.getElementById('newPw').value;
+  if (!oldPassword || !newPassword) return toast('請填寫完整', true);
+  try {
+    await api('/api/auth/change-password', { method: 'POST', body: { tier: 'income', oldPassword, newPassword } });
+    toast('密碼已更新');
+    document.getElementById('oldPw').value = '';
+    document.getElementById('newPw').value = '';
+  } catch (e) { toast(e.message, true); }
+}
+
+async function submitSession() {
+  const session_date = document.getElementById('sDate').value;
+  if (!session_date) return toast('請選擇開箱日期', true);
+  const body = {
+    session_date,
+    amount_general: document.getElementById('aGeneral').value,
+    amount_fulltime: document.getElementById('aFulltime').value,
+    amount_taiwan_gospel: document.getElementById('aTaiwan').value,
+    amount_overseas: document.getElementById('aOverseas').value,
+    amount_other: document.getElementById('aOther').value,
+    other_note: document.getElementById('otherNote').value,
+    personal_offerings: offerings.filter(o => o.person_name)
+  };
+  try {
+    await api('/api/income', { method: 'POST', body });
+    toast('已暫存，待負責弟兄簽名及奉獻對象簽收後歸檔');
+    ['aGeneral','aFulltime','aTaiwan','aOverseas','aOther','otherNote'].forEach(id => document.getElementById(id).value = '');
+    offerings = [];
+    renderOfferingRows();
+    loadSessions();
+  } catch (e) { toast(e.message, true); }
+}
+
+function sessionTotal(s) {
+  return s.amount_general + s.amount_fulltime + s.amount_taiwan_gospel + s.amount_overseas + s.amount_other;
+}
+
+async function loadSessions() {
+  try {
+    const data = await api('/api/income');
+    sessions = data.sessions;
+    renderSessions();
+    renderReminderBanner();
+  } catch (e) { toast(e.message, true); }
+}
+
+function renderReminderBanner() {
+  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+  let pending = 0;
+  sessions.forEach(s => (s.personal_offerings || []).forEach(o => {
+    if (!o.recipient_signature_key && o.created_at && new Date(o.created_at).getTime() <= weekAgo) pending++;
+  }));
+  const el = document.getElementById('reminderBanner');
+  if (pending === 0) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+  el.classList.remove('hidden');
+  el.innerHTML = `<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs font-bold text-amber-700">⚠️ 有 ${pending} 筆個人奉獻包已逾一週未簽收，請盡快處理</div>`;
+}
+
+function renderSessions() {
+  const c = document.getElementById('sessionList');
+  if (sessions.length === 0) { c.innerHTML = '<p class="text-center text-slate-300 text-sm py-8">尚無紀錄</p>'; return; }
+  c.innerHTML = sessions.map(s => {
+    const pendingOfferings = s.personal_offerings.filter(o => !o.recipient_signature_key).length;
+    const canArchive = s.incharge_signature_key && pendingOfferings === 0;
+    return `
+    <div class="border border-slate-100 rounded-xl p-3 space-y-2">
+      <div class="flex items-center justify-between">
+        <div class="font-black text-sm text-slate-700">${s.session_date}</div>
+        <span class="badge ${s.status === 'archived' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${s.status === 'archived' ? '已歸檔' : '暫存中'}</span>
+      </div>
+      <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-slate-500 font-bold">
+        <div>召會經常費 ${fmtMoney(s.amount_general)}</div>
+        <div>全時間供給 ${fmtMoney(s.amount_fulltime)}</div>
+        <div>臺灣福音工作 ${fmtMoney(s.amount_taiwan_gospel)}</div>
+        <div>海外開展 ${fmtMoney(s.amount_overseas)}</div>
+        <div>其他 ${fmtMoney(s.amount_other)} ${s.other_note ? '('+esc(s.other_note)+')' : ''}</div>
+        <div class="text-indigo-600">合計 ${fmtMoney(sessionTotal(s))}</div>
+      </div>
+      ${s.personal_offerings.length ? `
+      <div class="space-y-1 pt-1 border-t border-slate-100">
+        <div class="text-[10px] font-bold text-slate-400">個人奉獻</div>
+        ${s.personal_offerings.map(o => `
+          <div class="flex items-center justify-between text-xs font-bold text-slate-600">
+            <span>${esc(o.church_name)} ${esc(o.person_name)} × ${o.bag_count}包</span>
+            ${o.recipient_signature_key
+              ? '<span class="text-emerald-600 text-[10px]">已簽收</span>'
+              : (s.status === 'archived' ? '' : `<button onclick="signOffering('${s.id}','${o.id}')" class="text-[10px] text-indigo-500 font-black">簽收</button>`)}
+          </div>
+        `).join('')}
+      </div>` : ''}
+      ${s.status !== 'archived' ? `
+      <div class="flex gap-2 pt-1">
+        ${s.incharge_signature_key
+          ? '<span class="text-[10px] text-emerald-600 font-bold flex-1 py-2 text-center">負責弟兄已簽名</span>'
+          : `<button onclick="signIncharge('${s.id}')" class="flex-1 bg-slate-100 text-slate-600 py-2 rounded-lg font-black text-xs">負責弟兄簽名</button>`}
+        <button ${canArchive ? '' : 'disabled'} onclick="archiveSession('${s.id}')"
+          class="flex-1 py-2 rounded-lg font-black text-xs ${canArchive ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-300'}">正式歸檔</button>
+      </div>` : ''}
+    </div>
+  `;}).join('');
+}
+
+async function signIncharge(id) {
+  const sig = await askForSignature('負責弟兄簽名');
+  if (!sig) return;
+  try {
+    await api('/api/income/' + id, { method: 'PATCH', body: { action: 'sign_incharge', signature: sig } });
+    toast('已簽名');
+    loadSessions();
+  } catch (e) { toast(e.message, true); }
+}
+async function signOffering(sessionId, offeringId) {
+  const sig = await askForSignature('奉獻對象簽收');
+  if (!sig) return;
+  try {
+    await api('/api/income/' + sessionId, { method: 'PATCH', body: { action: 'sign_offering', offering_id: offeringId, signature: sig } });
+    toast('已簽收');
+    loadSessions();
+  } catch (e) { toast(e.message, true); }
+}
+async function archiveSession(id) {
+  if (!confirm('確認正式歸檔？歸檔後無法修改。')) return;
+  try {
+    await api('/api/income/' + id, { method: 'PATCH', body: { action: 'archive' } });
+    toast('已歸檔');
+    loadSessions();
+  } catch (e) { toast(e.message, true); }
+}
+
+document.getElementById('sDate').value = todayStr();
+addOfferingRow();
+checkLogin();
+registerSW();
+</script>
+</body>
+</html>

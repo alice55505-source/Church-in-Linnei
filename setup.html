@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>林內召會收支記帳 - 初始設定</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#4338CA">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>body{font-family:'Inter',"Microsoft JhengHei",sans-serif;background:#F8FAFC;} input{font-size:16px!important;}</style>
+</head>
+<body class="text-slate-900 min-h-screen flex items-center justify-center p-4">
+<div class="max-w-sm w-full bg-white border border-slate-200 rounded-2xl p-6 space-y-4">
+  <h1 class="font-black text-lg text-slate-800">系統初始設定</h1>
+  <p class="text-xs text-slate-400 font-medium">僅需設定一次。請分別設定「奉獻收入」與「記帳」兩層的密碼，兩者必須不同。設定完成後本頁即失效，之後請至各頁登入後使用「變更密碼」功能。</p>
+  <div class="space-y-1">
+    <label class="text-[10px] font-bold text-slate-400 ml-1">奉獻收入密碼（中間層）</label>
+    <input type="password" id="incomePw" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
+  </div>
+  <div class="space-y-1">
+    <label class="text-[10px] font-bold text-slate-400 ml-1">記帳密碼（最內層）</label>
+    <input type="password" id="ledgerPw" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
+  </div>
+  <div class="space-y-1">
+    <label class="text-[10px] font-bold text-slate-400 ml-1">設定金鑰（若管理員有提供 SETUP_KEY 才需填寫）</label>
+    <input type="text" id="setupKey" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
+  </div>
+  <button onclick="doSetup()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-black text-sm">完成初始設定</button>
+</div>
+<script src="/assets/common.js"></script>
+<script>
+async function doSetup() {
+  const income_password = document.getElementById('incomePw').value;
+  const ledger_password = document.getElementById('ledgerPw').value;
+  const setup_key = document.getElementById('setupKey').value;
+  if (!income_password || !ledger_password) return toast('請輸入兩組密碼', true);
+  try {
+    await api('/api/auth/bootstrap', { method: 'POST', body: { income_password, ledger_password, setup_key } });
+    toast('設定完成，請前往登入');
+    setTimeout(() => location.href = '/income.html', 1200);
+  } catch (e) { toast(e.message, true); }
+}
+registerSW();
+</script>
+</body>
+</html>
