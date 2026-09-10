@@ -105,11 +105,10 @@
     <div id="tab-recon" class="tab space-y-4">
       <div class="card p-4 space-y-3">
         <h2 class="text-base font-black text-slate-400 uppercase tracking-widest">期初餘額設定</h2>
-        <p class="text-[14px] text-slate-400 font-bold">系統剛啟用時，帳戶已有的既有結餘，累計結餘會從此金額開始累加。</p>
+        <p class="text-[14px] text-slate-400 font-bold">系統剛啟用時，帳戶已有的既有結餘，只需手動填一次，之後每個月都會自動帶入累計結餘，不用重填。</p>
         <div id="openingBalanceView"></div>
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="flex items-center gap-2">
           <input type="number" id="obAmount" placeholder="期初餘額金額" class="flex-1 min-w-0 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
-          <input type="date" id="obAsOf" class="flex-1 min-w-0 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-base font-bold">
           <button onclick="saveOpeningBalance()" class="shrink-0 bg-slate-800 text-white px-4 py-2 rounded-xl font-black text-base">儲存</button>
         </div>
       </div>
@@ -462,18 +461,14 @@ async function loadOpeningBalance() {
   try {
     const data = await api('/api/ledger/opening-balance');
     document.getElementById('obAmount').value = data.amount || '';
-    document.getElementById('obAsOf').value = data.as_of_date || '';
-    document.getElementById('openingBalanceView').innerHTML = data.as_of_date
-      ? `<p class="text-base font-bold text-indigo-600">目前設定：${fmtMoney(data.amount)}（基準日 ${data.as_of_date}）</p>`
-      : `<p class="text-base font-bold text-slate-300">尚未設定</p>`;
+    document.getElementById('openingBalanceView').innerHTML =
+      `<p class="text-base font-bold text-indigo-600">目前設定：${fmtMoney(data.amount)}</p>`;
   } catch (e) { toast(e.message, true); }
 }
 async function saveOpeningBalance() {
   const amount = document.getElementById('obAmount').value;
-  const as_of_date = document.getElementById('obAsOf').value;
-  if (!as_of_date) return toast('請選擇基準日', true);
   try {
-    await api('/api/ledger/opening-balance', { method: 'PATCH', body: { amount, as_of_date } });
+    await api('/api/ledger/opening-balance', { method: 'PATCH', body: { amount } });
     toast('已儲存');
     loadOpeningBalance();
   } catch (e) { toast(e.message, true); }
