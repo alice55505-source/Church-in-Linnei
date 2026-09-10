@@ -1,6 +1,6 @@
-const CACHE_NAME = 'linnei-accounting-v3';
+const CACHE_NAME = 'linnei-accounting-v4';
 const SHELL_FILES = [
-  '/', '/index.html', '/income.html', '/ledger.html', '/admin.html',
+  '/', '/index.html', '/income.html', '/ledger.html',
   '/manifest.webmanifest', '/assets/common.js',
   '/assets/icons/icon-192.png', '/assets/icons/icon-512.png'
 ];

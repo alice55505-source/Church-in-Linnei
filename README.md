@@ -12,7 +12,6 @@ Cloudflare Pages + Functions + D1 + R2 建置的三層收支記帳系統。
    - 月結對帳：月底上傳存簿/網銀照片，系統算出累計結餘供比對；出納、會計、負責弟兄三方簽名 → 確認完成。
    - 列印報表：當月支出、收入、經常費、對帳皆完成後才能列印（瀏覽器列印為 PDF），含出納/會計/負責弟兄簽名欄。
    用 **Google 帳號登入**（不是密碼），只有白名單內的信箱能登入，登入後可同時查看奉獻總覽。
-4. **管理頁**（`/admin.html`）：同樣用 Google 帳號登入，登入後可直接重設奉獻密碼（不需要知道原密碼），忘記密碼時使用。
 
 ## 部署步驟（Cloudflare Pages，網頁操作，不需指令列）
 
@@ -24,14 +23,14 @@ Cloudflare Pages + Functions + D1 + R2 建置的三層收支記帳系統。
    - **R2 bucket binding**：變數名稱 `FILES`，選擇 bucket `linnei-church-accounting-files`
 5. **Settings → Environment variables**，新增 Secret：
    - `SESSION_SECRET`：任意一串隨機長字串（登入 session 簽章用，務必設定，否則使用不安全的預設值）
-   - `GOOGLE_CLIENT_ID`、`ADMIN_EMAILS`：記帳／管理頁 Google 登入用，見下方「Google 登入設定」
+   - `GOOGLE_CLIENT_ID`、`ADMIN_EMAILS`：記帳 Google 登入用，見下方「Google 登入設定」
    - `VAPID_PUBLIC_KEY`、`VAPID_PRIVATE_JWK`、`VAPID_SUBJECT`：推播提醒通知用，見下方「提醒通知設定」
 6. D1 資料庫結構已透過 `migrations/` 內各檔案建立完成（此 repo 對應的 Cloudflare 帳號已預先執行）。若需在新帳號重新建立，依檔名順序於 D1 資料庫的 **Console** 頁籤貼上各檔案內容執行即可。
-7. 奉獻密碼預設為 `2016`，登入後可在頁面下方「變更密碼」功能自行更換；若忘記密碼，改用 Google 帳號登入 `/admin.html` 重設。
+7. 奉獻密碼固定為 `2016`，App 內沒有自行變更密碼的功能；如需更換，直接在 D1 的 **Console** 頁籤執行 SQL 更新 `settings` 表的 `income_password_hash`／`income_password_salt`（雜湊方式見 `functions/_lib/auth.js` 的 `hashPassword`）。
 
-## Google 登入設定（記帳／管理頁）
+## Google 登入設定（記帳頁）
 
-記帳與管理頁不使用密碼，改用「使用 Google 帳號登入」按鈕，只有白名單信箱能登入：
+記帳頁不使用密碼，改用「使用 Google 帳號登入」按鈕，只有白名單信箱能登入：
 
 1. 前往 [Google Cloud Console](https://console.cloud.google.com/) → 建立（或選擇既有）專案。
 2. **APIs & Services → OAuth consent screen**：設定一次即可（User type 選 External，填基本資訊）。
@@ -42,7 +41,7 @@ Cloudflare Pages + Functions + D1 + R2 建置的三層收支記帳系統。
 4. 回 Cloudflare Pages **Settings → Environment variables**，新增 Secret：
    - `GOOGLE_CLIENT_ID`：貼上剛剛的 Client ID
    - `ADMIN_EMAILS`：允許登入的 Google 信箱，多個用逗號分隔，例如 `alice55505@gmail.com`
-5. 設定完成後重新部署一次，`/ledger.html`、`/admin.html` 就會顯示「使用 Google 帳號登入」按鈕。
+5. 設定完成後重新部署一次，`/ledger.html` 就會顯示「使用 Google 帳號登入」按鈕。
 
 ## PWA（可安裝成 App）
 
@@ -82,9 +81,8 @@ Cloudflare Pages + Functions + D1 + R2 建置的三層收支記帳系統。
 
 ```
 index.html          最外層：公開請款
-income.html          中間層：奉獻（密碼，預設 2016）
+income.html          中間層：奉獻（密碼固定 2016，App 內無法自行變更）
 ledger.html           最內層：記帳（Google 帳號登入）
-admin.html             管理頁：重設奉獻密碼（Google 帳號登入）
 manifest.webmanifest    PWA 安裝設定
 sw.js                    Service Worker（離線快取、推播通知）
 assets/common.js          前端共用函式（API、簽名板、Toast、推播訂閱）

@@ -41,7 +41,7 @@
     <h2 class="text-lg font-black text-slate-500">請輸入奉獻密碼</h2>
     <input type="password" id="loginPw" placeholder="密碼" class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
     <button onclick="doLogin()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-black text-lg">登入</button>
-    <p class="text-[15px] text-slate-400">密碼忘記了請聯絡管理員（於管理頁重設）。</p>
+    <p class="text-[15px] text-slate-400">密碼忘記了請聯絡管理員。</p>
   </div>
 
   <!-- Main Content -->
@@ -100,13 +100,6 @@
         <h2 class="text-lg font-black text-slate-400 uppercase tracking-widest">奉獻紀錄</h2>
       </div>
       <div id="sessionList" class="px-4 pb-5 space-y-3"></div>
-    </div>
-
-    <div class="card p-5 space-y-3">
-      <h2 class="text-lg font-black text-slate-400 uppercase tracking-widest">變更奉獻密碼</h2>
-      <input type="password" id="oldPw" placeholder="原密碼" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
-      <input type="password" id="newPw" placeholder="新密碼" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
-      <button onclick="changePw()" class="w-full bg-slate-100 text-slate-600 py-2.5 rounded-xl font-black text-lg">變更密碼</button>
     </div>
   </div>
 
@@ -173,18 +166,6 @@ async function doLogout() {
   await api('/api/auth/logout', { method: 'POST' });
   location.reload();
 }
-async function changePw() {
-  const oldPassword = document.getElementById('oldPw').value;
-  const newPassword = document.getElementById('newPw').value;
-  if (!oldPassword || !newPassword) return toast('請填寫完整', true);
-  try {
-    await api('/api/auth/change-password', { method: 'POST', body: { tier: 'income', oldPassword, newPassword } });
-    toast('密碼已更新');
-    document.getElementById('oldPw').value = '';
-    document.getElementById('newPw').value = '';
-  } catch (e) { toast(e.message, true); }
-}
-
 async function submitSession() {
   const session_date = document.getElementById('sDate').value;
   if (!session_date) return toast('請選擇開箱日期', true);
