@@ -15,6 +15,8 @@
   input, select, textarea { font-size:16px !important; }
   .card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; }
   .badge { display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; font-size:10px; font-weight:800; }
+  .chip { display:inline-flex; align-items:center; padding:8px 14px; border-radius:999px; font-size:12px; font-weight:800; background:#f1f5f9; color:#475569; cursor:pointer; border:1.5px solid #e2e8f0; transition:all .1s; }
+  .chip.selected { background:#eef2ff; color:#4338ca; border-color:#6366f1; }
 </style>
 </head>
 <body class="text-slate-900 min-h-screen pb-16">
@@ -49,9 +51,10 @@
       </div>
     </div>
 
-    <div class="space-y-1">
+    <div class="space-y-2">
       <label class="text-[10px] font-bold text-slate-400 ml-1">用途</label>
-      <input type="text" id="fPurpose" placeholder="例：福音茶會茶點、聚會用品採購" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
+      <div id="purposeChips" class="flex flex-wrap gap-2"></div>
+      <input type="text" id="fPurposeDetail" placeholder="請輸入物品" class="hidden w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
     </div>
 
     <div class="space-y-2">
@@ -96,8 +99,31 @@
 <script>
 let items = [];
 let receiptKeys = [];
+let selectedPurpose = '';
+
+const PURPOSE_OPTIONS = ['兒少活動', '兒少愛宴', '主日愛宴', '會所物品採購', '相調支出', '特會支出', '其他'];
+const PURPOSE_NEEDS_DETAIL = ['會所物品採購', '其他'];
 
 function genRowId() { return 'r' + Math.random().toString(36).slice(2, 9); }
+
+function renderPurposeChips() {
+  const c = document.getElementById('purposeChips');
+  c.innerHTML = PURPOSE_OPTIONS.map(p => `
+    <button type="button" onclick="selectPurpose('${p}')" class="chip ${selectedPurpose === p ? 'selected' : ''}">${p}</button>
+  `).join('');
+  document.getElementById('fPurposeDetail').classList.toggle('hidden', !PURPOSE_NEEDS_DETAIL.includes(selectedPurpose));
+}
+function selectPurpose(p) {
+  selectedPurpose = p;
+  if (!PURPOSE_NEEDS_DETAIL.includes(p)) document.getElementById('fPurposeDetail').value = '';
+  renderPurposeChips();
+}
+function getPurposeValue() {
+  if (!selectedPurpose) return '';
+  const detail = document.getElementById('fPurposeDetail').value.trim();
+  if (PURPOSE_NEEDS_DETAIL.includes(selectedPurpose) && detail) return selectedPurpose + '：' + detail;
+  return selectedPurpose;
+}
 
 // 這支手機自己送出過的請款單，只存在本機 localStorage，不會上傳到伺服器
 function getMyRequestIds() {
@@ -192,10 +218,13 @@ function updateTotal() {
 async function submitRequest() {
   const expense_date = document.getElementById('fDate').value;
   const requester = document.getElementById('fRequester').value.trim();
-  const purpose = document.getElementById('fPurpose').value.trim();
+  const purpose = getPurposeValue();
   if (!expense_date) return toast('請選擇花費日期', true);
   if (!requester) return toast('請填寫請款人', true);
-  if (!purpose) return toast('請填寫用途', true);
+  if (!selectedPurpose) return toast('請選擇用途', true);
+  if (PURPOSE_NEEDS_DETAIL.includes(selectedPurpose) && !document.getElementById('fPurposeDetail').value.trim()) {
+    return toast('請輸入物品', true);
+  }
   const validItems = items.filter(i => i.name && Number(i.unit_price) >= 0 && Number(i.qty) > 0);
   if (validItems.length === 0) return toast('請至少填寫一項品項', true);
 
@@ -204,7 +233,9 @@ async function submitRequest() {
     saveMyRequestId(res.id);
     toast('請款申請已送出');
     document.getElementById('fRequester').value = '';
-    document.getElementById('fPurpose').value = '';
+    selectedPurpose = '';
+    document.getElementById('fPurposeDetail').value = '';
+    renderPurposeChips();
     items = [];
     receiptKeys = [];
     addItemRow();
@@ -262,6 +293,7 @@ document.getElementById('fDate').value = todayStr();
 document.getElementById('monthFilter').addEventListener('change', loadList);
 addItemRow();
 renderReceiptThumbs();
+renderPurposeChips();
 loadList();
 registerSW();
 </script>
