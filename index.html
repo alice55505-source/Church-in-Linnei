@@ -54,7 +54,7 @@
     <div class="space-y-2">
       <label class="text-[10px] font-bold text-slate-400 ml-1">用途</label>
       <div id="purposeChips" class="flex flex-wrap gap-2"></div>
-      <input type="text" id="fPurposeDetail" placeholder="請輸入物品" class="hidden w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
+      <input type="text" id="fPurposeDetail" placeholder="補充說明" class="hidden w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
     </div>
 
     <div class="space-y-2">
@@ -103,6 +103,15 @@ let selectedPurpose = '';
 
 const PURPOSE_OPTIONS = ['兒少活動', '兒少愛宴', '主日愛宴', '會所物品採購', '相調支出', '特會支出', '其他'];
 const PURPOSE_REQUIRES_DETAIL = ['會所物品採購', '其他'];
+const PURPOSE_PLACEHOLDERS = {
+  '兒少活動': '請輸入活動內容（選填）',
+  '兒少愛宴': '請輸入內容（選填）',
+  '主日愛宴': '請輸入內容（選填）',
+  '會所物品採購': '請輸入採購物品',
+  '相調支出': '請輸入相調名稱（選填）',
+  '特會支出': '請輸入特會名稱（選填）',
+  '其他': '請輸入內容說明'
+};
 
 function genRowId() { return 'r' + Math.random().toString(36).slice(2, 9); }
 
@@ -113,7 +122,7 @@ function renderPurposeChips() {
   `).join('');
   const detailInput = document.getElementById('fPurposeDetail');
   detailInput.classList.toggle('hidden', !selectedPurpose);
-  detailInput.placeholder = PURPOSE_REQUIRES_DETAIL.includes(selectedPurpose) ? '請輸入物品' : '補充說明（選填）';
+  detailInput.placeholder = PURPOSE_PLACEHOLDERS[selectedPurpose] || '補充說明（選填）';
 }
 function selectPurpose(p) {
   selectedPurpose = p;
