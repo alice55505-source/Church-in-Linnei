@@ -5,13 +5,14 @@ Cloudflare Pages + Functions + D1 + R2 建置的三層收支記帳系統。
 ## 三層架構
 
 1. **最外層／公開**（`/`，`index.html`）：任何人可查詢、提交請款申請（花費日期、用途、品項、請款人、自動請款日期）。不需密碼。
-2. **中間層／奉獻收入**（`/income.html`）：每次開奉獻箱記一筆，含五類金額 + 個人奉獻（只記包數不記金額）。暫存 → 負責弟兄簽名 + 各奉獻對象簽收 → 正式歸檔。需「奉獻收入密碼」。
+2. **中間層／奉獻**（`/income.html`）：每次開奉獻箱記一筆，含五類金額 + 個人奉獻（只記包數不記金額）。暫存 → 負責弟兄簽名 + 各奉獻對象簽收 → 正式歸檔。用密碼登入（預設 `2016`）。
 3. **最內層／記帳**（`/ledger.html`）：
    - 支出記帳：待記帳請款單 → 記帳 → 負責弟兄簽名 + 上傳簽收/轉帳截圖 → 確認入帳。
    - 經常費支出：按月，可編輯，每月自動沿用上月項目；上傳轉帳記錄 + 負責弟兄簽名 → 確認完成。
    - 月結對帳：月底上傳存簿/網銀照片，系統算出累計結餘供比對；出納、會計、負責弟兄三方簽名 → 確認完成。
    - 列印報表：當月支出、收入、經常費、對帳皆完成後才能列印（瀏覽器列印為 PDF），含出納/會計/負責弟兄簽名欄。
-   需「記帳密碼」，且與奉獻收入密碼不同（記帳密碼可同時查看收入總覽）。
+   用 **Google 帳號登入**（不是密碼），只有白名單內的信箱能登入，登入後可同時查看奉獻總覽。
+4. **管理頁**（`/admin.html`）：同樣用 Google 帳號登入，登入後可直接重設奉獻密碼（不需要知道原密碼），忘記密碼時使用。
 
 ## 部署步驟（Cloudflare Pages，網頁操作，不需指令列）
 
@@ -23,11 +24,25 @@ Cloudflare Pages + Functions + D1 + R2 建置的三層收支記帳系統。
    - **R2 bucket binding**：變數名稱 `FILES`，選擇 bucket `linnei-church-accounting-files`
 5. **Settings → Environment variables**，新增 Secret：
    - `SESSION_SECRET`：任意一串隨機長字串（登入 session 簽章用，務必設定，否則使用不安全的預設值）
-   - `SETUP_KEY`（選填）：若設定，`/setup.html` 初始化時需輸入此值才能設定密碼，避免被他人搶先設定
+   - `GOOGLE_CLIENT_ID`、`ADMIN_EMAILS`：記帳／管理頁 Google 登入用，見下方「Google 登入設定」
    - `VAPID_PUBLIC_KEY`、`VAPID_PRIVATE_JWK`、`VAPID_SUBJECT`：推播提醒通知用，見下方「提醒通知設定」
-6. D1 資料庫結構（資料表）已透過遷移檔 `migrations/0001_init.sql`、`0002_add_receipts.sql`、`0003_pwa_reminders.sql` 建立完成（此 repo 對應的 Cloudflare 帳號已預先執行）。若需在新帳號重新建立，依序於 D1 資料庫的 **Console** 頁籤貼上各檔案內容執行即可。
-7. 部署完成後，開啟 `https://<你的網域>/setup.html`，設定「奉獻收入密碼」與「記帳密碼」（兩者需不同）。此頁僅能使用一次。
-8. 之後各層可在登入後使用頁面下方的「變更密碼」功能更換密碼。
+6. D1 資料庫結構已透過 `migrations/` 內各檔案建立完成（此 repo 對應的 Cloudflare 帳號已預先執行）。若需在新帳號重新建立，依檔名順序於 D1 資料庫的 **Console** 頁籤貼上各檔案內容執行即可。
+7. 奉獻密碼預設為 `2016`，登入後可在頁面下方「變更密碼」功能自行更換；若忘記密碼，改用 Google 帳號登入 `/admin.html` 重設。
+
+## Google 登入設定（記帳／管理頁）
+
+記帳與管理頁不使用密碼，改用「使用 Google 帳號登入」按鈕，只有白名單信箱能登入：
+
+1. 前往 [Google Cloud Console](https://console.cloud.google.com/) → 建立（或選擇既有）專案。
+2. **APIs & Services → OAuth consent screen**：設定一次即可（User type 選 External，填基本資訊）。
+3. **APIs & Services → Credentials → Create Credentials → OAuth client ID**：
+   - Application type 選 **Web application**
+   - **Authorized JavaScript origins** 填你的網域，例如 `https://church-in-linnei.pages.dev`（正式網域也要加）
+   - 建立後複製得到的 **Client ID**（長得像 `xxxxxxxx.apps.googleusercontent.com`）
+4. 回 Cloudflare Pages **Settings → Environment variables**，新增 Secret：
+   - `GOOGLE_CLIENT_ID`：貼上剛剛的 Client ID
+   - `ADMIN_EMAILS`：允許登入的 Google 信箱，多個用逗號分隔，例如 `alice55505@gmail.com`
+5. 設定完成後重新部署一次，`/ledger.html`、`/admin.html` 就會顯示「使用 Google 帳號登入」按鈕。
 
 ## PWA（可安裝成 App）
 
@@ -61,20 +76,21 @@ Cloudflare Pages + Functions + D1 + R2 建置的三層收支記帳系統。
    console.log('VAPID_PUBLIC_KEY=' + b64url(raw));
    console.log('VAPID_PRIVATE_JWK=' + JSON.stringify(jwkPriv));
    ```
-3. 設定完成後，記帳同工於「奉獻收入」或「記帳」頁登入後，點「啟用提醒通知」按鈕並允許瀏覽器通知權限即可。
+3. 設定完成後，記帳同工於「奉獻」或「記帳」頁登入後，點「啟用提醒通知」按鈕並允許瀏覽器通知權限即可。
 
 ## 檔案結構
 
 ```
 index.html          最外層：公開請款
-income.html          中間層：奉獻收入（密碼）
-ledger.html           最內層：記帳（密碼）
-setup.html             初始設定（僅用一次）
+income.html          中間層：奉獻（密碼，預設 2016）
+ledger.html           最內層：記帳（Google 帳號登入）
+admin.html             管理頁：重設奉獻密碼（Google 帳號登入）
 manifest.webmanifest    PWA 安裝設定
 sw.js                    Service Worker（離線快取、推播通知）
 assets/common.js          前端共用函式（API、簽名板、Toast、推播訂閱）
 assets/icons/               App 圖示
 functions/api/...              Cloudflare Pages Functions 後端 API
+functions/_lib/google.js         Google ID Token 驗證
 functions/_lib/push.js           VAPID Web Push 發送
 functions/_lib/reminders.js       提醒規則檢查
 migrations/                        D1 資料庫結構（依序執行）
