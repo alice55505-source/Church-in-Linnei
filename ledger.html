@@ -27,7 +27,7 @@
   }
 </style>
 </head>
-<body class="text-slate-900 min-h-screen pb-16">
+<body class="text-slate-900 min-h-screen pb-16 overflow-x-hidden">
 
 <header class="sticky top-0 z-40 bg-white/85 backdrop-blur border-b border-slate-200/60">
   <div class="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -90,10 +90,12 @@
           <h2 class="text-base font-black text-slate-400 uppercase tracking-widest">召會經常費支出</h2>
           <input type="month" id="regularMonth" class="text-base font-bold px-2 py-1.5 bg-slate-50 border border-slate-100 rounded-lg outline-none">
         </div>
-        <div class="flex gap-2">
-          <input type="text" id="regName" placeholder="項目名稱" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
-          <input type="number" id="regAmount" placeholder="金額" class="w-24 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
-          <button onclick="addRegularItem()" class="bg-slate-800 text-white px-3 rounded-xl font-black text-base">新增</button>
+        <div class="space-y-2">
+          <input type="text" id="regName" placeholder="項目名稱" class="w-full min-w-0 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
+          <div class="flex gap-2">
+            <input type="number" id="regAmount" placeholder="金額" class="flex-1 min-w-0 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
+            <button onclick="addRegularItem()" class="shrink-0 bg-slate-800 text-white px-4 rounded-xl font-black text-base">新增</button>
+          </div>
         </div>
         <div id="regularList" class="space-y-2"></div>
       </div>

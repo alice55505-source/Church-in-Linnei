@@ -19,7 +19,7 @@
   .chip.selected { background:#eef2ff; color:#4338ca; border-color:#6366f1; }
 </style>
 </head>
-<body class="text-slate-900 min-h-screen pb-16">
+<body class="text-slate-900 min-h-screen pb-16 overflow-x-hidden">
 
 <header class="sticky top-0 z-40 bg-white/85 backdrop-blur border-b border-slate-200/60">
   <div class="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -198,7 +198,7 @@ function renderItemRows() {
     <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 space-y-2">
       <div class="flex items-center gap-2">
         <input type="text" placeholder="品名" value="${esc(it.name)}" oninput="updateItemRow('${it.rid}','name',this.value)"
-          class="flex-1 px-3 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-lg font-bold">
+          class="flex-1 min-w-0 px-3 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-lg font-bold">
         <button onclick="removeItemRow('${it.rid}')" class="text-slate-300 hover:text-rose-500 p-1">✕</button>
       </div>
       <div class="grid grid-cols-3 gap-2">

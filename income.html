@@ -17,7 +17,7 @@
   .badge { display:inline-flex; align-items:center; padding:3px 12px; border-radius:999px; font-size:14px; font-weight:800; }
 </style>
 </head>
-<body class="text-slate-900 min-h-screen pb-16">
+<body class="text-slate-900 min-h-screen pb-16 overflow-x-hidden">
 
 <header class="sticky top-0 z-40 bg-white/85 backdrop-blur border-b border-slate-200/60">
   <div class="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -63,23 +63,23 @@
       <div class="grid grid-cols-1 gap-2">
         <div class="flex items-center gap-2">
           <span class="w-32 text-base font-bold text-slate-500 shrink-0">為召會經常費用</span>
-          <input type="number" id="aGeneral" placeholder="0" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-black">
+          <input type="number" id="aGeneral" placeholder="0" class="flex-1 min-w-0 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-black">
         </div>
         <div class="flex items-center gap-2">
           <span class="w-32 text-base font-bold text-slate-500 shrink-0">為全時間供給用</span>
-          <input type="number" id="aFulltime" placeholder="0" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-black">
+          <input type="number" id="aFulltime" placeholder="0" class="flex-1 min-w-0 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-black">
         </div>
         <div class="flex items-center gap-2">
           <span class="w-32 text-base font-bold text-slate-500 shrink-0">為臺灣福音工作用</span>
-          <input type="number" id="aTaiwan" placeholder="0" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-black">
+          <input type="number" id="aTaiwan" placeholder="0" class="flex-1 min-w-0 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-black">
         </div>
         <div class="flex items-center gap-2">
           <span class="w-32 text-base font-bold text-slate-500 shrink-0">為海外開展用</span>
-          <input type="number" id="aOverseas" placeholder="0" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-black">
+          <input type="number" id="aOverseas" placeholder="0" class="flex-1 min-w-0 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-black">
         </div>
         <div class="flex items-center gap-2">
           <span class="w-32 text-base font-bold text-slate-500 shrink-0">其他</span>
-          <input type="number" id="aOther" placeholder="0" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-black">
+          <input type="number" id="aOther" placeholder="0" class="flex-1 min-w-0 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-black">
         </div>
         <input type="text" id="otherNote" placeholder="其他項目備註" class="px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-base font-bold">
       </div>
@@ -131,7 +131,7 @@ function renderOfferingRows() {
       <input type="text" placeholder="召會" value="${esc(o.church_name)}" oninput="updateOfferingRow('${o.rid}','church_name',this.value)"
         class="w-20 px-2 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-base font-bold">
       <input type="text" placeholder="弟兄/姊妹姓名" value="${esc(o.person_name)}" oninput="updateOfferingRow('${o.rid}','person_name',this.value)"
-        class="flex-1 px-2 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-base font-bold">
+        class="flex-1 min-w-0 px-2 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-base font-bold">
       <input type="number" placeholder="幾包" value="${o.bag_count}" oninput="updateOfferingRow('${o.rid}','bag_count',+this.value)"
         class="w-16 px-2 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-base font-black">
       <button onclick="removeOfferingRow('${o.rid}')" class="text-slate-300 hover:text-rose-500 px-1">✕</button>
