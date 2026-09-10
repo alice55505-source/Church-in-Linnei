@@ -80,14 +80,12 @@ export async function onRequestPatch({ request, env, params }) {
   return badRequest('未知的操作');
 }
 
-// 僅記帳頁（ledger 登入）可刪除，且已簽名/已歸檔的紀錄一律不可刪除，避免財務紀錄被竄改
+// 僅記帳頁（ledger 登入）可刪除，任何狀態皆可刪除
 export async function onRequestDelete({ request, env, params }) {
   const session = await requireTier(request, env, 'ledger');
   if (!session) return unauthorized();
   const row = await env.DB.prepare('SELECT * FROM income_sessions WHERE id=?').bind(params.id).first();
   if (!row) return json({ error: '找不到紀錄' }, 404);
-  if (row.status === 'archived') return badRequest('已歸檔，無法刪除');
-  if (row.incharge_signature_key) return badRequest('已簽名，無法刪除');
   await env.DB.batch([
     env.DB.prepare('DELETE FROM personal_offerings WHERE session_id=?').bind(row.id),
     env.DB.prepare('DELETE FROM income_sessions WHERE id=?').bind(row.id)
