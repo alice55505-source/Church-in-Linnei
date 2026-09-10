@@ -19,7 +19,9 @@ export async function onRequestPatch({ request, env, params }) {
 
   if (action === 'attach_payment_proof') {
     if (!body.file_key) return badRequest('缺少轉帳記錄相片');
-    await env.DB.prepare('UPDATE regular_expense_items SET payment_proof_key=?, paid=1 WHERE id=?').bind(body.file_key, row.id).run();
+    if (body.payment_amount == null || body.payment_amount === '') return badRequest('請填寫憑證上顯示的金額');
+    await env.DB.prepare('UPDATE regular_expense_items SET payment_proof_key=?, payment_amount=?, paid=1 WHERE id=?')
+      .bind(body.file_key, Number(body.payment_amount), row.id).run();
     return json({ ok: true });
   }
 
@@ -34,7 +36,14 @@ export async function onRequestPatch({ request, env, params }) {
   if (action === 'confirm') {
     if (!row.payment_proof_key) return badRequest('需先上傳轉帳記錄相片');
     if (!row.incharge_signature_key) return badRequest('需先由負責弟兄簽名');
-    await env.DB.prepare("UPDATE regular_expense_items SET status='confirmed' WHERE id=?").bind(row.id).run();
+
+    const mismatch = row.payment_amount != null && Math.abs(row.payment_amount - row.amount) > 0.01;
+    if (mismatch && !body.override_note) {
+      return badRequest(`憑證金額（${row.payment_amount}）與登記金額（${row.amount}）不符，請填寫說明後確認完成`);
+    }
+
+    await env.DB.prepare("UPDATE regular_expense_items SET status='confirmed', amount_override_note=? WHERE id=?")
+      .bind(mismatch ? String(body.override_note).slice(0, 500) : null, row.id).run();
     return json({ ok: true });
   }
 

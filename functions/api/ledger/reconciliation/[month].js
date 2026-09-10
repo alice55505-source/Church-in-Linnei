@@ -28,7 +28,14 @@ export async function onRequestPatch({ request, env, params }) {
     if (!fresh.cashier_signature_key || !fresh.accountant_signature_key || !fresh.incharge_signature_key) {
       return badRequest('需出納、會計、負責弟兄皆簽名後才能完成');
     }
-    await env.DB.prepare("UPDATE monthly_reconciliation SET status='confirmed' WHERE month=?").bind(row.month).run();
+
+    const mismatch = fresh.bank_balance != null && fresh.computed_balance != null && Math.abs(fresh.bank_balance - fresh.computed_balance) > 0.01;
+    if (mismatch && !body.override_note) {
+      return badRequest(`銀行餘額（${fresh.bank_balance}）與記帳累計結餘（${fresh.computed_balance}）不符，請填寫說明後確認完成`);
+    }
+
+    await env.DB.prepare("UPDATE monthly_reconciliation SET status='confirmed', amount_override_note=? WHERE month=?")
+      .bind(mismatch ? String(body.override_note).slice(0, 500) : null, row.month).run();
     return json({ ok: true });
   }
 
