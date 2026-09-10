@@ -233,7 +233,7 @@ function renderSessions() {
         </div>
         <span class="badge ${s.status === 'archived' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${s.status === 'archived' ? '已歸檔' : '暫存中'}</span>
       </div>
-      <div class="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[15px] text-slate-500 font-bold">
+      <div class="grid grid-cols-1 gap-y-1.5 text-[15px] text-slate-500 font-bold">
         <div class="flex justify-between gap-2"><span>召會經常費</span><span>${fmtMoney(s.amount_general)}</span></div>
         <div class="flex justify-between gap-2"><span>全時間供給</span><span>${fmtMoney(s.amount_fulltime)}</span></div>
         <div class="flex justify-between gap-2"><span>臺灣福音工作</span><span>${fmtMoney(s.amount_taiwan_gospel)}</span></div>
