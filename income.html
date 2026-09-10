@@ -14,7 +14,7 @@
   body { font-family:'Inter',"Microsoft JhengHei",sans-serif; background:#F8FAFC; }
   input, select, textarea { font-size:16px !important; }
   .card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; }
-  .badge { display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; font-size:10px; font-weight:800; }
+  .badge { display:inline-flex; align-items:center; padding:3px 12px; border-radius:999px; font-size:14px; font-weight:800; }
 </style>
 </head>
 <body class="text-slate-900 min-h-screen pb-16">
@@ -22,10 +22,10 @@
 <header class="sticky top-0 z-40 bg-white/85 backdrop-blur border-b border-slate-200/60">
   <div class="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
     <div class="flex items-center gap-2">
-      <div class="w-8 h-8 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-sm">林</div>
-      <span class="font-black text-slate-800 text-sm">奉獻（不公開）</span>
+      <div class="w-8 h-8 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-lg">林</div>
+      <span class="font-black text-slate-800 text-lg">奉獻（不公開）</span>
     </div>
-    <div class="flex items-center gap-3 text-xs font-bold">
+    <div class="flex items-center gap-3 text-base font-bold">
       <a href="/" class="text-slate-400 hover:text-indigo-600">請款</a>
       <span class="text-slate-800">奉獻</span>
       <a href="/ledger.html" class="text-slate-400 hover:text-indigo-600">記帳</a>
@@ -38,10 +38,10 @@
 
   <!-- Login Gate -->
   <div id="loginGate" class="card p-6 space-y-3">
-    <h2 class="text-sm font-black text-slate-500">請輸入奉獻密碼</h2>
-    <input type="password" id="loginPw" placeholder="密碼" class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
-    <button onclick="doLogin()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-black text-sm">登入</button>
-    <p class="text-[11px] text-slate-400">首次使用請先至 <a href="/setup.html" class="text-indigo-500 underline">初始設定頁</a> 設定密碼。</p>
+    <h2 class="text-lg font-black text-slate-500">請輸入奉獻密碼</h2>
+    <input type="password" id="loginPw" placeholder="密碼" class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
+    <button onclick="doLogin()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-black text-lg">登入</button>
+    <p class="text-[15px] text-slate-400">首次使用請先至 <a href="/setup.html" class="text-indigo-500 underline">初始設定頁</a> 設定密碼。</p>
   </div>
 
   <!-- Main Content -->
@@ -50,63 +50,63 @@
     <div id="reminderBanner" class="hidden"></div>
 
     <div class="card p-4 flex items-center justify-between gap-3">
-      <p class="text-xs font-bold text-slate-500">啟用後，個人奉獻包逾一週未簽收時會發送提醒通知</p>
-      <button onclick="enablePushNotifications()" class="shrink-0 text-[11px] bg-slate-100 text-slate-600 px-3 py-2 rounded-lg font-black">啟用提醒通知</button>
+      <p class="text-base font-bold text-slate-500">啟用後，個人奉獻包逾一週未簽收時會發送提醒通知</p>
+      <button onclick="enablePushNotifications()" class="shrink-0 text-[15px] bg-slate-100 text-slate-600 px-3 py-2 rounded-lg font-black">啟用提醒通知</button>
     </div>
 
     <div class="card p-5 space-y-4">
-      <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest">新增開奉獻箱紀錄</h2>
+      <h2 class="text-lg font-black text-slate-400 uppercase tracking-widest">新增開奉獻箱紀錄</h2>
       <div class="space-y-1">
-        <label class="text-[10px] font-bold text-slate-400 ml-1">開箱日期</label>
-        <input type="date" id="sDate" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
+        <label class="text-[14px] font-bold text-slate-400 ml-1">開箱日期</label>
+        <input type="date" id="sDate" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
       </div>
       <div class="grid grid-cols-1 gap-2">
         <div class="flex items-center gap-2">
-          <span class="w-32 text-xs font-bold text-slate-500 shrink-0">為召會經常費用</span>
-          <input type="number" id="aGeneral" placeholder="0" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-black">
+          <span class="w-32 text-base font-bold text-slate-500 shrink-0">為召會經常費用</span>
+          <input type="number" id="aGeneral" placeholder="0" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-black">
         </div>
         <div class="flex items-center gap-2">
-          <span class="w-32 text-xs font-bold text-slate-500 shrink-0">為全時間供給用</span>
-          <input type="number" id="aFulltime" placeholder="0" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-black">
+          <span class="w-32 text-base font-bold text-slate-500 shrink-0">為全時間供給用</span>
+          <input type="number" id="aFulltime" placeholder="0" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-black">
         </div>
         <div class="flex items-center gap-2">
-          <span class="w-32 text-xs font-bold text-slate-500 shrink-0">為臺灣福音工作用</span>
-          <input type="number" id="aTaiwan" placeholder="0" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-black">
+          <span class="w-32 text-base font-bold text-slate-500 shrink-0">為臺灣福音工作用</span>
+          <input type="number" id="aTaiwan" placeholder="0" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-black">
         </div>
         <div class="flex items-center gap-2">
-          <span class="w-32 text-xs font-bold text-slate-500 shrink-0">為海外開展用</span>
-          <input type="number" id="aOverseas" placeholder="0" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-black">
+          <span class="w-32 text-base font-bold text-slate-500 shrink-0">為海外開展用</span>
+          <input type="number" id="aOverseas" placeholder="0" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-black">
         </div>
         <div class="flex items-center gap-2">
-          <span class="w-32 text-xs font-bold text-slate-500 shrink-0">其他</span>
-          <input type="number" id="aOther" placeholder="0" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-black">
+          <span class="w-32 text-base font-bold text-slate-500 shrink-0">其他</span>
+          <input type="number" id="aOther" placeholder="0" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-black">
         </div>
-        <input type="text" id="otherNote" placeholder="其他項目備註" class="px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-xs font-bold">
+        <input type="text" id="otherNote" placeholder="其他項目備註" class="px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-base font-bold">
       </div>
 
       <div class="space-y-2">
         <div class="flex items-center justify-between">
-          <label class="text-[10px] font-bold text-slate-400 ml-1">個人奉獻（只記幾包，不記金額）</label>
-          <button onclick="addOfferingRow()" class="text-[11px] font-bold text-emerald-600 px-2 py-1 rounded-lg hover:bg-emerald-50">+ 新增</button>
+          <label class="text-[14px] font-bold text-slate-400 ml-1">個人奉獻（只記幾包，不記金額）</label>
+          <button onclick="addOfferingRow()" class="text-[15px] font-bold text-emerald-600 px-2 py-1 rounded-lg hover:bg-emerald-50">+ 新增</button>
         </div>
         <div id="offeringRows" class="space-y-2"></div>
       </div>
 
-      <button onclick="submitSession()" class="w-full bg-emerald-600 text-white py-3.5 rounded-xl font-black text-sm shadow-lg shadow-emerald-100">暫存本次紀錄</button>
+      <button onclick="submitSession()" class="w-full bg-emerald-600 text-white py-3.5 rounded-xl font-black text-lg shadow-lg shadow-emerald-100">暫存本次紀錄</button>
     </div>
 
     <div class="card overflow-hidden">
       <div class="px-5 pt-5 pb-3">
-        <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest">奉獻紀錄</h2>
+        <h2 class="text-lg font-black text-slate-400 uppercase tracking-widest">奉獻紀錄</h2>
       </div>
       <div id="sessionList" class="px-4 pb-5 space-y-3"></div>
     </div>
 
     <div class="card p-5 space-y-3">
-      <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest">變更奉獻密碼</h2>
-      <input type="password" id="oldPw" placeholder="原密碼" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
-      <input type="password" id="newPw" placeholder="新密碼" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm font-bold">
-      <button onclick="changePw()" class="w-full bg-slate-100 text-slate-600 py-2.5 rounded-xl font-black text-sm">變更密碼</button>
+      <h2 class="text-lg font-black text-slate-400 uppercase tracking-widest">變更奉獻密碼</h2>
+      <input type="password" id="oldPw" placeholder="原密碼" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
+      <input type="password" id="newPw" placeholder="新密碼" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
+      <button onclick="changePw()" class="w-full bg-slate-100 text-slate-600 py-2.5 rounded-xl font-black text-lg">變更密碼</button>
     </div>
   </div>
 
@@ -132,15 +132,15 @@ function updateOfferingRow(rid, field, value) {
 }
 function renderOfferingRows() {
   const c = document.getElementById('offeringRows');
-  if (offerings.length === 0) { c.innerHTML = '<p class="text-xs text-slate-300 text-center py-2">無個人奉獻項目</p>'; return; }
+  if (offerings.length === 0) { c.innerHTML = '<p class="text-base text-slate-300 text-center py-2">無個人奉獻項目</p>'; return; }
   c.innerHTML = offerings.map(o => `
     <div class="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-xl p-2">
       <input type="text" placeholder="召會" value="${esc(o.church_name)}" oninput="updateOfferingRow('${o.rid}','church_name',this.value)"
-        class="w-20 px-2 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-xs font-bold">
+        class="w-20 px-2 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-base font-bold">
       <input type="text" placeholder="弟兄/姊妹姓名" value="${esc(o.person_name)}" oninput="updateOfferingRow('${o.rid}','person_name',this.value)"
-        class="flex-1 px-2 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-xs font-bold">
+        class="flex-1 px-2 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-base font-bold">
       <input type="number" placeholder="幾包" value="${o.bag_count}" oninput="updateOfferingRow('${o.rid}','bag_count',+this.value)"
-        class="w-16 px-2 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-xs font-black">
+        class="w-16 px-2 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-base font-black">
       <button onclick="removeOfferingRow('${o.rid}')" class="text-slate-300 hover:text-rose-500 px-1">✕</button>
     </div>
   `).join('');
@@ -230,22 +230,22 @@ function renderReminderBanner() {
   const el = document.getElementById('reminderBanner');
   if (pending === 0) { el.classList.add('hidden'); el.innerHTML = ''; return; }
   el.classList.remove('hidden');
-  el.innerHTML = `<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs font-bold text-amber-700">⚠️ 有 ${pending} 筆個人奉獻包已逾一週未簽收，請盡快處理</div>`;
+  el.innerHTML = `<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-base font-bold text-amber-700">⚠️ 有 ${pending} 筆個人奉獻包已逾一週未簽收，請盡快處理</div>`;
 }
 
 function renderSessions() {
   const c = document.getElementById('sessionList');
-  if (sessions.length === 0) { c.innerHTML = '<p class="text-center text-slate-300 text-sm py-8">尚無紀錄</p>'; return; }
+  if (sessions.length === 0) { c.innerHTML = '<p class="text-center text-slate-300 text-lg py-8">尚無紀錄</p>'; return; }
   c.innerHTML = sessions.map(s => {
     const pendingOfferings = s.personal_offerings.filter(o => !o.recipient_signature_key).length;
     const canArchive = s.incharge_signature_key && pendingOfferings === 0;
     return `
     <div class="border border-slate-100 rounded-xl p-3 space-y-2">
       <div class="flex items-center justify-between">
-        <div class="font-black text-sm text-slate-700">${s.session_date}</div>
+        <div class="font-black text-lg text-slate-700">${s.session_date}</div>
         <span class="badge ${s.status === 'archived' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${s.status === 'archived' ? '已歸檔' : '暫存中'}</span>
       </div>
-      <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-slate-500 font-bold">
+      <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[15px] text-slate-500 font-bold">
         <div>召會經常費 ${fmtMoney(s.amount_general)}</div>
         <div>全時間供給 ${fmtMoney(s.amount_fulltime)}</div>
         <div>臺灣福音工作 ${fmtMoney(s.amount_taiwan_gospel)}</div>
@@ -255,23 +255,23 @@ function renderSessions() {
       </div>
       ${s.personal_offerings.length ? `
       <div class="space-y-1 pt-1 border-t border-slate-100">
-        <div class="text-[10px] font-bold text-slate-400">個人奉獻</div>
+        <div class="text-[14px] font-bold text-slate-400">個人奉獻</div>
         ${s.personal_offerings.map(o => `
-          <div class="flex items-center justify-between text-xs font-bold text-slate-600">
+          <div class="flex items-center justify-between text-base font-bold text-slate-600">
             <span>${esc(o.church_name)} ${esc(o.person_name)} × ${o.bag_count}包</span>
             ${o.recipient_signature_key
-              ? '<span class="text-emerald-600 text-[10px]">已簽收</span>'
-              : (s.status === 'archived' ? '' : `<button onclick="signOffering('${s.id}','${o.id}')" class="text-[10px] text-indigo-500 font-black">簽收</button>`)}
+              ? '<span class="text-emerald-600 text-[14px]">已簽收</span>'
+              : (s.status === 'archived' ? '' : `<button onclick="signOffering('${s.id}','${o.id}')" class="text-[14px] text-indigo-500 font-black">簽收</button>`)}
           </div>
         `).join('')}
       </div>` : ''}
       ${s.status !== 'archived' ? `
       <div class="flex gap-2 pt-1">
         ${s.incharge_signature_key
-          ? '<span class="text-[10px] text-emerald-600 font-bold flex-1 py-2 text-center">負責弟兄已簽名</span>'
-          : `<button onclick="signIncharge('${s.id}')" class="flex-1 bg-slate-100 text-slate-600 py-2 rounded-lg font-black text-xs">負責弟兄簽名</button>`}
+          ? '<span class="text-[14px] text-emerald-600 font-bold flex-1 py-2 text-center">負責弟兄已簽名</span>'
+          : `<button onclick="signIncharge('${s.id}')" class="flex-1 bg-slate-100 text-slate-600 py-2 rounded-lg font-black text-base">負責弟兄簽名</button>`}
         <button ${canArchive ? '' : 'disabled'} onclick="archiveSession('${s.id}')"
-          class="flex-1 py-2 rounded-lg font-black text-xs ${canArchive ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-300'}">正式歸檔</button>
+          class="flex-1 py-2 rounded-lg font-black text-base ${canArchive ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-300'}">正式歸檔</button>
       </div>` : ''}
     </div>
   `;}).join('');

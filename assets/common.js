@@ -74,7 +74,7 @@ function toast(msg, isError) {
   if (!el) {
     el = document.createElement('div');
     el.id = '__toast';
-    el.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:999;padding:10px 18px;border-radius:12px;font-weight:700;font-size:14px;color:#fff;transition:opacity .2s;max-width:90vw;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.15);';
+    el.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:999;padding:12px 20px;border-radius:12px;font-weight:700;font-size:17px;color:#fff;transition:opacity .2s;max-width:90vw;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.15);';
     document.body.appendChild(el);
   }
   el.style.background = isError ? '#dc2626' : '#059669';
@@ -147,12 +147,12 @@ function askForSignature(title) {
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:flex-end;justify-content:center;';
     overlay.innerHTML = `
       <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px;">
-        <h3 style="font-weight:900;font-size:14px;color:#334155;margin-bottom:10px;">${esc(title || '請簽名')}</h3>
+        <h3 style="font-weight:900;font-size:18px;color:#334155;margin-bottom:10px;">${esc(title || '請簽名')}</h3>
         <canvas width="440" height="180" style="width:100%;height:180px;background:#f8fafc;border:1.5px dashed #cbd5e1;border-radius:12px;touch-action:none;"></canvas>
         <div style="display:flex;gap:8px;margin-top:12px;">
-          <button data-act="clear" style="flex:1;padding:10px;border-radius:10px;background:#f1f5f9;color:#475569;font-weight:800;font-size:13px;border:none;">清除</button>
-          <button data-act="cancel" style="flex:1;padding:10px;border-radius:10px;background:#f1f5f9;color:#475569;font-weight:800;font-size:13px;border:none;">取消</button>
-          <button data-act="ok" style="flex:2;padding:10px;border-radius:10px;background:#4f46e5;color:#fff;font-weight:800;font-size:13px;border:none;">確認簽名</button>
+          <button data-act="clear" style="flex:1;padding:12px;border-radius:10px;background:#f1f5f9;color:#475569;font-weight:800;font-size:16px;border:none;">清除</button>
+          <button data-act="cancel" style="flex:1;padding:12px;border-radius:10px;background:#f1f5f9;color:#475569;font-weight:800;font-size:16px;border:none;">取消</button>
+          <button data-act="ok" style="flex:2;padding:12px;border-radius:10px;background:#4f46e5;color:#fff;font-weight:800;font-size:16px;border:none;">確認簽名</button>
         </div>
       </div>`;
     document.body.appendChild(overlay);
