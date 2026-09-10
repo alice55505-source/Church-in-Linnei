@@ -51,9 +51,15 @@
 
     <div class="card p-5 space-y-4">
       <h2 class="text-lg font-black text-slate-400 uppercase tracking-widest">新增開奉獻箱紀錄</h2>
-      <div class="space-y-1">
-        <label class="text-[14px] font-bold text-slate-400 ml-1">開箱日期</label>
-        <input type="date" id="sDate" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="space-y-1">
+          <label class="text-[14px] font-bold text-slate-400 ml-1">開箱日期</label>
+          <input type="date" id="sDate" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
+        </div>
+        <div class="space-y-1">
+          <label class="text-[14px] font-bold text-slate-400 ml-1">開箱人</label>
+          <input type="text" id="sOpener" placeholder="姓名" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
+        </div>
       </div>
       <div class="grid grid-cols-1 gap-2">
         <div class="flex items-center gap-2">
@@ -163,9 +169,12 @@ async function doLogout() {
 }
 async function submitSession() {
   const session_date = document.getElementById('sDate').value;
+  const opener_name = document.getElementById('sOpener').value.trim();
   if (!session_date) return toast('請選擇開箱日期', true);
+  if (!opener_name) return toast('請填寫開箱人', true);
   const body = {
     session_date,
+    opener_name,
     amount_general: document.getElementById('aGeneral').value,
     amount_fulltime: document.getElementById('aFulltime').value,
     amount_taiwan_gospel: document.getElementById('aTaiwan').value,
@@ -177,6 +186,7 @@ async function submitSession() {
   try {
     await api('/api/income', { method: 'POST', body });
     toast('已暫存，待負責弟兄簽名及奉獻對象簽收後歸檔');
+    document.getElementById('sOpener').value = '';
     ['aGeneral','aFulltime','aTaiwan','aOverseas','aOther','otherNote'].forEach(id => document.getElementById(id).value = '');
     offerings = [];
     renderOfferingRows();
@@ -218,7 +228,10 @@ function renderSessions() {
     return `
     <div class="border border-slate-100 rounded-xl p-3 space-y-2">
       <div class="flex items-center justify-between">
-        <div class="font-black text-lg text-slate-700">${s.session_date}</div>
+        <div>
+          <div class="font-black text-lg text-slate-700">${s.session_date}</div>
+          <div class="text-[15px] text-slate-400 font-bold">開箱人：${esc(s.opener_name || '')}</div>
+        </div>
         <span class="badge ${s.status === 'archived' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${s.status === 'archived' ? '已歸檔' : '暫存中'}</span>
       </div>
       <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[15px] text-slate-500 font-bold">

@@ -16,8 +16,9 @@ export async function onRequestPost({ request, env }) {
   const session = await requireTier(request, env, 'income');
   if (!session) return unauthorized();
   const body = await request.json().catch(() => ({}));
-  const { session_date, amount_general, amount_fulltime, amount_taiwan_gospel, amount_overseas, amount_other, other_note, personal_offerings } = body;
+  const { session_date, opener_name, amount_general, amount_fulltime, amount_taiwan_gospel, amount_overseas, amount_other, other_note, personal_offerings } = body;
   if (!session_date) return badRequest('缺少開奉獻箱日期');
+  if (!opener_name) return badRequest('缺少開箱人姓名');
 
   const num = v => Number(v) || 0;
   const id = uid();
@@ -26,9 +27,9 @@ export async function onRequestPost({ request, env }) {
   const stmts = [
     env.DB.prepare(
       `INSERT INTO income_sessions
-        (id, session_date, amount_general, amount_fulltime, amount_taiwan_gospel, amount_overseas, amount_other, other_note, status, created_at)
-       VALUES (?,?,?,?,?,?,?,?,?,?)`
-    ).bind(id, session_date, num(amount_general), num(amount_fulltime), num(amount_taiwan_gospel), num(amount_overseas), num(amount_other), other_note || '', 'draft', now)
+        (id, session_date, opener_name, amount_general, amount_fulltime, amount_taiwan_gospel, amount_overseas, amount_other, other_note, status, created_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`
+    ).bind(id, session_date, String(opener_name).slice(0, 100), num(amount_general), num(amount_fulltime), num(amount_taiwan_gospel), num(amount_overseas), num(amount_other), other_note || '', 'draft', now)
   ];
 
   if (Array.isArray(personal_offerings)) {

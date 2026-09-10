@@ -24,9 +24,9 @@ export async function onRequestPatch({ request, env, params }) {
   if (action === 'update') {
     const num = v => Number(v) || 0;
     await env.DB.prepare(
-      `UPDATE income_sessions SET session_date=?, amount_general=?, amount_fulltime=?, amount_taiwan_gospel=?, amount_overseas=?, amount_other=?, other_note=? WHERE id=?`
+      `UPDATE income_sessions SET session_date=?, opener_name=?, amount_general=?, amount_fulltime=?, amount_taiwan_gospel=?, amount_overseas=?, amount_other=?, other_note=? WHERE id=?`
     ).bind(
-      body.session_date || row.session_date, num(body.amount_general), num(body.amount_fulltime),
+      body.session_date || row.session_date, body.opener_name || row.opener_name, num(body.amount_general), num(body.amount_fulltime),
       num(body.amount_taiwan_gospel), num(body.amount_overseas), num(body.amount_other), body.other_note ?? row.other_note, row.id
     ).run();
     return json({ ok: true });
