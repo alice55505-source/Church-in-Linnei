@@ -24,7 +24,9 @@ export async function onRequestPatch({ request, env, params }) {
     return json({ ok: true });
   }
 
+  // 簽名一旦完成即鎖定，不可重簽或取消，避免財務紀錄被竄改
   if (action === 'sign_incharge') {
+    if (row.incharge_signature_key) return badRequest('已簽名，無法重簽');
     const key = await saveDataUrlImage(env, body.signature, 'signatures');
     if (!key) return badRequest('缺少負責弟兄簽名');
     await env.DB.prepare('UPDATE regular_expense_items SET incharge_signature_key=?, incharge_signed_at=? WHERE id=?')

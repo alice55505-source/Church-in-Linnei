@@ -47,7 +47,9 @@ export async function onRequestPatch({ request, env, params }) {
     return json({ ok: true });
   }
 
+  // 簽名一旦完成即鎖定，不可重簽或取消，避免財務紀錄被竄改
   if (action === 'sign_incharge') {
+    if (row.incharge_signature_key) return badRequest('已簽名，無法重簽');
     const key = await saveDataUrlImage(env, body.signature, 'signatures');
     if (!key) return badRequest('缺少負責弟兄簽名');
     await env.DB.prepare('UPDATE income_sessions SET incharge_signature_key=?, incharge_signed_at=? WHERE id=?')
@@ -57,6 +59,8 @@ export async function onRequestPatch({ request, env, params }) {
 
   if (action === 'sign_offering') {
     if (!body.offering_id) return badRequest('缺少項目編號');
+    const off = await env.DB.prepare('SELECT recipient_signature_key FROM personal_offerings WHERE id=? AND session_id=?').bind(body.offering_id, row.id).first();
+    if (off && off.recipient_signature_key) return badRequest('已簽收，無法重簽');
     const key = await saveDataUrlImage(env, body.signature, 'signatures');
     if (!key) return badRequest('缺少簽收簽名');
     await env.DB.prepare('UPDATE personal_offerings SET recipient_signature_key=?, signed_at=? WHERE id=? AND session_id=?')
