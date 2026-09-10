@@ -233,13 +233,13 @@ function renderSessions() {
         </div>
         <span class="badge ${s.status === 'archived' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${s.status === 'archived' ? '已歸檔' : '暫存中'}</span>
       </div>
-      <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[15px] text-slate-500 font-bold">
-        <div>召會經常費 ${fmtMoney(s.amount_general)}</div>
-        <div>全時間供給 ${fmtMoney(s.amount_fulltime)}</div>
-        <div>臺灣福音工作 ${fmtMoney(s.amount_taiwan_gospel)}</div>
-        <div>海外開展 ${fmtMoney(s.amount_overseas)}</div>
-        <div>其他 ${fmtMoney(s.amount_other)} ${s.other_note ? '('+esc(s.other_note)+')' : ''}</div>
-        <div class="text-indigo-600">合計 ${fmtMoney(sessionTotal(s))}</div>
+      <div class="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[15px] text-slate-500 font-bold">
+        <div class="flex justify-between gap-2"><span>召會經常費</span><span>${fmtMoney(s.amount_general)}</span></div>
+        <div class="flex justify-between gap-2"><span>全時間供給</span><span>${fmtMoney(s.amount_fulltime)}</span></div>
+        <div class="flex justify-between gap-2"><span>臺灣福音工作</span><span>${fmtMoney(s.amount_taiwan_gospel)}</span></div>
+        <div class="flex justify-between gap-2"><span>海外開展</span><span>${fmtMoney(s.amount_overseas)}</span></div>
+        <div class="flex justify-between gap-2"><span>其他${s.other_note ? '（'+esc(s.other_note)+'）' : ''}</span><span>${fmtMoney(s.amount_other)}</span></div>
+        <div class="flex justify-between gap-2 text-indigo-600"><span>合計</span><span>${fmtMoney(sessionTotal(s))}</span></div>
       </div>
       ${s.personal_offerings.length ? `
       <div class="space-y-1 pt-1 border-t border-slate-100">
