@@ -55,3 +55,17 @@ export async function onRequestPatch({ request, env, params }) {
 
   return json({ ok: true, total_amount: total });
 }
+
+// 同樣僅限尚未記帳前可刪除
+export async function onRequestDelete({ params, env }) {
+  const row = await env.DB.prepare('SELECT * FROM expense_requests WHERE id=?').bind(params.id).first();
+  if (!row) return json({ error: '找不到資料' }, 404);
+  if (row.status !== 'submitted') return badRequest('此請款單已開始記帳，無法刪除');
+
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM expense_items WHERE request_id=?').bind(row.id),
+    env.DB.prepare('DELETE FROM expense_request_receipts WHERE request_id=?').bind(row.id),
+    env.DB.prepare('DELETE FROM expense_requests WHERE id=?').bind(row.id)
+  ]);
+  return json({ ok: true });
+}
