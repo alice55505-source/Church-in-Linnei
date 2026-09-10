@@ -58,19 +58,14 @@ export async function onRequestPatch({ request, env, params }) {
 }
 
 // 尚未記帳（submitted）：請款人本人（知道 id 即可）可刪除。
-// 已記帳但未入帳（booked）：僅記帳頁（ledger 登入）可刪除，一併移除記帳資料。
-// 已入帳（archived/finalized）：一律不可刪除，為正式財務紀錄。
+// 已記帳（booked/archived）：僅記帳頁（ledger 登入）可刪除，任何狀態皆可刪除，一併移除記帳資料。
 export async function onRequestDelete({ request, env, params }) {
   const row = await env.DB.prepare('SELECT * FROM expense_requests WHERE id=?').bind(params.id).first();
   if (!row) return json({ error: '找不到資料' }, 404);
 
-  if (row.status === 'booked') {
+  if (row.status !== 'submitted') {
     const session = await requireTier(request, env, 'ledger');
     if (!session) return unauthorized();
-    const le = await env.DB.prepare('SELECT status FROM ledger_expenses WHERE request_id=?').bind(row.id).first();
-    if (le && le.status === 'finalized') return badRequest('已入帳，無法刪除');
-  } else if (row.status !== 'submitted') {
-    return badRequest('已入帳，無法刪除');
   }
 
   await env.DB.batch([

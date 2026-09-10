@@ -275,8 +275,8 @@ async function loadExpenses() {
             <span class="badge ${e.status === 'finalized' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${e.status === 'finalized' ? '已入帳' : '記帳中'}</span>
           </div>
           ${receiptThumbsHTML(e.receipts)}
-          ${e.status !== 'finalized' ? `
           <div class="flex flex-wrap gap-2">
+            ${e.status === 'finalized' ? '' : `
             ${e.requester_signature_key ? '<span class="text-[14px] text-emerald-600 font-bold">請款人已簽收</span>' :
               `<button onclick="ledgerSignRequester('${e.id}')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">請款人簽收</button>`}
             ${e.incharge_signature_key ? '<span class="text-[14px] text-emerald-600 font-bold">負責弟兄已簽名</span>' :
@@ -285,8 +285,9 @@ async function loadExpenses() {
               `<label class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black cursor-pointer">上傳轉帳截圖（選填）
                 <input type="file" accept="image/*" capture="environment" class="hidden" onchange="ledgerAttachReceipt('${e.id}', this)"></label>`}
             <button onclick="ledgerFinalize('${e.id}')" class="text-[15px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認入帳</button>
+            `}
             <button onclick="deleteExpenseRequest('${e.request_id}')" class="text-[15px] text-rose-500 px-2 py-1.5 rounded-lg font-black">刪除</button>
-          </div>` : ''}
+          </div>
         </div>
       `).join('');
   } catch (err) { toast(err.message, true); }
