@@ -24,7 +24,7 @@ export async function onRequestGet({ request, env }) {
 
 export async function onRequestPost({ request, env }) {
   const body = await request.json().catch(() => ({}));
-  const { expense_date, purpose, requester, items, receipt_keys, receipt_amount } = body;
+  const { expense_date, purpose, requester, items, receipt_keys } = body;
   if (!expense_date || !purpose || !requester || !Array.isArray(items) || items.length === 0) {
     return badRequest('請填寫花費日期、用途、請款人與至少一項品項');
   }
@@ -46,10 +46,9 @@ export async function onRequestPost({ request, env }) {
 
   const stmts = [
     env.DB.prepare(
-      `INSERT INTO expense_requests (id, expense_date, purpose, requester, request_date, total_amount, receipt_amount, status, created_at)
-       VALUES (?,?,?,?,?,?,?,?,?)`
-    ).bind(id, expense_date, String(purpose).slice(0, 500), String(requester).slice(0, 100), now.slice(0, 10), total,
-      receipt_amount != null && receipt_amount !== '' ? Number(receipt_amount) : null, 'submitted', now),
+      `INSERT INTO expense_requests (id, expense_date, purpose, requester, request_date, total_amount, status, created_at)
+       VALUES (?,?,?,?,?,?,?,?)`
+    ).bind(id, expense_date, String(purpose).slice(0, 500), String(requester).slice(0, 100), now.slice(0, 10), total, 'submitted', now),
     ...itemRows.map(it =>
       env.DB.prepare(`INSERT INTO expense_items (id, request_id, name, unit_price, qty, total) VALUES (?,?,?,?,?,?)`)
         .bind(it.id, id, it.name, it.unit_price, it.qty, it.total)

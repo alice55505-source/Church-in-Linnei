@@ -75,11 +75,6 @@
         </label>
       </div>
       <div id="receiptThumbs" class="flex flex-wrap gap-2"></div>
-      <div class="space-y-1">
-        <label class="text-[14px] font-bold text-slate-400 ml-1">發票／收據上的總金額</label>
-        <input type="number" id="fReceiptAmount" placeholder="請填寫發票/收據顯示的金額，供核對" oninput="updateTotal()" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-black">
-      </div>
-      <div id="receiptMismatchHint" class="hidden text-[14px] font-bold text-rose-500">⚠️ 與品項總金額不符，記帳時需要說明</div>
     </div>
 
     <div class="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 flex items-center justify-between">
@@ -219,9 +214,6 @@ function renderItemRows() {
 function updateTotal() {
   const total = items.reduce((s, i) => s + (Number(i.unit_price) || 0) * (Number(i.qty) || 0), 0);
   document.getElementById('totalPreview').textContent = fmtMoney(total);
-  const receiptAmount = document.getElementById('fReceiptAmount').value;
-  const hint = document.getElementById('receiptMismatchHint');
-  hint.classList.toggle('hidden', receiptAmount === '' || Math.abs(Number(receiptAmount) - total) < 0.01);
 }
 
 async function submitRequest() {
@@ -235,16 +227,11 @@ async function submitRequest() {
   const validItems = items.filter(i => i.name && Number(i.unit_price) >= 0 && Number(i.qty) > 0);
   if (validItems.length === 0) return toast('請至少填寫一項品項', true);
 
-  const receiptAmount = document.getElementById('fReceiptAmount').value;
   try {
-    const res = await api('/api/expenses', { method: 'POST', body: {
-      expense_date, requester, purpose, items: validItems, receipt_keys: receiptKeys,
-      receipt_amount: receiptAmount !== '' ? receiptAmount : null
-    } });
+    const res = await api('/api/expenses', { method: 'POST', body: { expense_date, requester, purpose, items: validItems, receipt_keys: receiptKeys } });
     saveMyRequestId(res.id);
     toast('請款申請已送出');
     document.getElementById('fRequester').value = '';
-    document.getElementById('fReceiptAmount').value = '';
     selectedPurpose = '';
     document.getElementById('fPurposeDetail').value = '';
     renderPurposeChips();
@@ -295,7 +282,6 @@ async function loadList() {
           ${r.items.map(it => `<span class="text-[14px] bg-slate-50 border border-slate-100 rounded-lg px-2 py-1 text-slate-500 font-bold">${esc(it.name)} ×${it.qty} = ${fmtMoney(it.total)}</span>`).join('')}
         </div>
         ${r.receipts && r.receipts.length ? `<div class="mt-2 flex flex-wrap gap-2">${r.receipts.map(rc => receiptThumbHTML(rc.file_key, false)).join('')}</div>` : ''}
-        ${r.receipt_amount != null ? `<div class="mt-1 text-[14px] font-bold ${Math.abs(r.receipt_amount - r.total_amount) < 0.01 ? 'text-emerald-600' : 'text-rose-500'}">發票金額 ${fmtMoney(r.receipt_amount)}${Math.abs(r.receipt_amount - r.total_amount) < 0.01 ? ' ✓ 相符' : ' ⚠ 不符'}</div>` : ''}
         <div class="mt-2 text-right font-black text-indigo-600 text-lg">${fmtMoney(r.total_amount)}</div>
       </div>
     `).join('');

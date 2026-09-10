@@ -16,8 +16,7 @@ export async function onRequestGet({ request, env }) {
   }
 
   const { results: booked } = await env.DB.prepare(`
-    SELECT le.*, er.expense_date, er.purpose, er.requester, er.request_date, er.total_amount, er.created_at as request_created_at,
-      er.receipt_amount as request_receipt_amount
+    SELECT le.*, er.expense_date, er.purpose, er.requester, er.request_date, er.total_amount, er.created_at as request_created_at
     FROM ledger_expenses le JOIN expense_requests er ON er.id = le.request_id
     ORDER BY er.expense_date DESC, le.booked_at DESC
   `).all();
