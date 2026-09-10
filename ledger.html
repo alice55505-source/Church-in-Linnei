@@ -396,7 +396,7 @@ async function regularConfirm(id) {
   catch (e) { toast(e.message, true); }
 }
 async function regularDelete(id) {
-  if (!confirm('確定刪除？')) return;
+  if (!confirm('確定刪除？將一併刪除本月及之後尚未完成的同名項目，之後不會再自動延續；已完成的過去月份不受影響。')) return;
   try { await api('/api/ledger/regular/' + id, { method: 'DELETE' }); loadRegular(); }
   catch (e) { toast(e.message, true); }
 }

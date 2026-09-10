@@ -42,12 +42,16 @@ export async function onRequestPatch({ request, env, params }) {
   return badRequest('未知的操作');
 }
 
+// 刪除此經常費項目：同時刪除同名項目在「本月及之後」尚未確認完成的紀錄（含已自動延續到未來月份的），
+// 讓它不再繼續延續到下個月；已確認完成的過去月份紀錄不受影響、不會被刪除。
 export async function onRequestDelete({ request, env, params }) {
   const session = await requireTier(request, env, 'ledger');
   if (!session) return unauthorized();
   const row = await env.DB.prepare('SELECT * FROM regular_expense_items WHERE id=?').bind(params.id).first();
   if (!row) return json({ error: '找不到' }, 404);
   if (row.status === 'confirmed') return badRequest('已確認完成，無法刪除');
-  await env.DB.prepare('DELETE FROM regular_expense_items WHERE id=?').bind(row.id).run();
+  await env.DB.prepare(
+    `DELETE FROM regular_expense_items WHERE name=? AND month>=? AND status!='confirmed'`
+  ).bind(row.name, row.month).run();
   return json({ ok: true });
 }
