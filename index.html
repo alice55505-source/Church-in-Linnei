@@ -102,7 +102,7 @@ let receiptKeys = [];
 let selectedPurpose = '';
 
 const PURPOSE_OPTIONS = ['兒少活動', '兒少愛宴', '主日愛宴', '會所物品採購', '相調支出', '特會支出', '其他'];
-const PURPOSE_NEEDS_DETAIL = ['會所物品採購', '其他'];
+const PURPOSE_REQUIRES_DETAIL = ['會所物品採購', '其他'];
 
 function genRowId() { return 'r' + Math.random().toString(36).slice(2, 9); }
 
@@ -111,18 +111,19 @@ function renderPurposeChips() {
   c.innerHTML = PURPOSE_OPTIONS.map(p => `
     <button type="button" onclick="selectPurpose('${p}')" class="chip ${selectedPurpose === p ? 'selected' : ''}">${p}</button>
   `).join('');
-  document.getElementById('fPurposeDetail').classList.toggle('hidden', !PURPOSE_NEEDS_DETAIL.includes(selectedPurpose));
+  const detailInput = document.getElementById('fPurposeDetail');
+  detailInput.classList.toggle('hidden', !selectedPurpose);
+  detailInput.placeholder = PURPOSE_REQUIRES_DETAIL.includes(selectedPurpose) ? '請輸入物品' : '補充說明（選填）';
 }
 function selectPurpose(p) {
   selectedPurpose = p;
-  if (!PURPOSE_NEEDS_DETAIL.includes(p)) document.getElementById('fPurposeDetail').value = '';
+  document.getElementById('fPurposeDetail').value = '';
   renderPurposeChips();
 }
 function getPurposeValue() {
   if (!selectedPurpose) return '';
   const detail = document.getElementById('fPurposeDetail').value.trim();
-  if (PURPOSE_NEEDS_DETAIL.includes(selectedPurpose) && detail) return selectedPurpose + '：' + detail;
-  return selectedPurpose;
+  return detail ? selectedPurpose + '：' + detail : selectedPurpose;
 }
 
 // 這支手機自己送出過的請款單，只存在本機 localStorage，不會上傳到伺服器
@@ -222,7 +223,7 @@ async function submitRequest() {
   if (!expense_date) return toast('請選擇花費日期', true);
   if (!requester) return toast('請填寫請款人', true);
   if (!selectedPurpose) return toast('請選擇用途', true);
-  if (PURPOSE_NEEDS_DETAIL.includes(selectedPurpose) && !document.getElementById('fPurposeDetail').value.trim()) {
+  if (PURPOSE_REQUIRES_DETAIL.includes(selectedPurpose) && !document.getElementById('fPurposeDetail').value.trim()) {
     return toast('請輸入物品', true);
   }
   const validItems = items.filter(i => i.name && Number(i.unit_price) >= 0 && Number(i.qty) > 0);
