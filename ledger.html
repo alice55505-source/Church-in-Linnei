@@ -326,19 +326,46 @@ async function ledgerFinalize(id) {
 }
 
 /* ===== 收入總覽 ===== */
+function incomeSessionTotal(s) {
+  return s.amount_general + s.amount_fulltime + s.amount_taiwan_gospel + s.amount_overseas + s.amount_other;
+}
 async function loadIncomeOverview() {
   try {
     const data = await api('/api/income');
-    const archived = data.sessions.filter(s => s.status === 'archived');
     const pending = data.sessions.filter(s => s.status !== 'archived');
     const c = document.getElementById('incomeOverview');
     const pendingHTML = pending.length > 0
       ? `<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-base font-bold text-amber-700 mb-2">⚠️ 尚有 ${pending.length} 筆奉獻紀錄未入帳（暫存中，待奉獻頁簽名/簽收後歸檔）</div>`
       : '';
-    const listHTML = archived.length === 0 ? '<p class="text-base text-slate-300 text-center py-3">尚無已歸檔紀錄</p>' :
-      archived.map(s => `
-        <div class="border border-slate-100 rounded-xl p-3 text-base font-bold text-slate-600">
-          <div class="flex justify-between"><span>${s.session_date}</span><span class="text-indigo-600">${fmtMoney(s.amount_general + s.amount_fulltime + s.amount_taiwan_gospel + s.amount_overseas + s.amount_other)}</span></div>
+    const listHTML = data.sessions.length === 0 ? '<p class="text-base text-slate-300 text-center py-3">尚無紀錄</p>' :
+      data.sessions.map(s => `
+        <div class="border border-slate-100 rounded-xl p-3 space-y-2">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="font-black text-lg text-slate-700">${s.session_date}</div>
+              <div class="text-[15px] text-slate-400 font-bold">開箱人：${esc(s.opener_name || '')}</div>
+            </div>
+            <span class="badge ${s.status === 'archived' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${s.status === 'archived' ? '已歸檔' : '暫存中'}</span>
+          </div>
+          <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[15px] text-slate-500 font-bold">
+            <div>召會經常費 ${fmtMoney(s.amount_general)}</div>
+            <div>全時間供給 ${fmtMoney(s.amount_fulltime)}</div>
+            <div>臺灣福音工作 ${fmtMoney(s.amount_taiwan_gospel)}</div>
+            <div>海外開展 ${fmtMoney(s.amount_overseas)}</div>
+            <div>其他 ${fmtMoney(s.amount_other)} ${s.other_note ? '('+esc(s.other_note)+')' : ''}</div>
+            <div class="text-indigo-600">合計 ${fmtMoney(incomeSessionTotal(s))}</div>
+          </div>
+          ${s.personal_offerings.length ? `
+          <div class="space-y-1 pt-1 border-t border-slate-100">
+            <div class="text-[14px] font-bold text-slate-400">個人奉獻</div>
+            ${s.personal_offerings.map(o => `
+              <div class="flex items-center justify-between text-base font-bold text-slate-600">
+                <span>${esc(o.church_name)} ${esc(o.person_name)} × ${o.bag_count}包</span>
+                <span class="text-[14px] ${o.recipient_signature_key ? 'text-emerald-600' : 'text-amber-600'}">${o.recipient_signature_key ? '已簽收' : '未簽收'}</span>
+              </div>
+            `).join('')}
+          </div>` : ''}
+          <div class="text-[14px] font-bold ${s.incharge_signature_key ? 'text-emerald-600' : 'text-amber-600'}">負責弟兄簽名：${s.incharge_signature_key ? '已簽名' : '尚未簽名'}</div>
         </div>
       `).join('');
     c.innerHTML = pendingHTML + listHTML;
