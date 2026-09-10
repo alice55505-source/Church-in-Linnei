@@ -38,8 +38,11 @@
 <main class="max-w-3xl mx-auto px-4 pt-5 space-y-5">
 
   <!-- New Request -->
-  <div class="card p-5 space-y-4">
-    <h2 class="text-lg font-black text-slate-400 uppercase tracking-widest">新增請款申請</h2>
+  <div id="formCard" class="card p-5 space-y-4">
+    <div class="flex items-center justify-between">
+      <h2 id="formTitle" class="text-lg font-black text-slate-400 uppercase tracking-widest">新增請款申請</h2>
+      <button id="cancelEditBtn" onclick="cancelEdit()" class="hidden text-[15px] font-bold text-rose-500 px-2 py-1 rounded-lg hover:bg-rose-50">取消編輯</button>
+    </div>
 
     <div class="grid grid-cols-2 gap-3">
       <div class="space-y-1">
@@ -82,7 +85,7 @@
       <span id="totalPreview" class="text-2xl font-black text-indigo-700">NT$ 0</span>
     </div>
 
-    <button onclick="submitRequest()" class="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-black text-lg shadow-lg shadow-indigo-100">送出請款申請</button>
+    <button onclick="submitRequest()" class="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-black text-lg shadow-lg shadow-indigo-100"><span id="submitBtnText">送出請款申請</span></button>
   </div>
 
   <!-- List -->
@@ -101,6 +104,7 @@
 let items = [];
 let receiptKeys = [];
 let selectedPurpose = '';
+let editingId = null;
 
 const PURPOSE_OPTIONS = ['兒少活動', '兒少愛宴', '主日愛宴', '會所物品採購', '相調支出', '特會支出', '其他'];
 
@@ -216,6 +220,49 @@ function updateTotal() {
   document.getElementById('totalPreview').textContent = fmtMoney(total);
 }
 
+function resetForm() {
+  editingId = null;
+  document.getElementById('formTitle').textContent = '新增請款申請';
+  document.getElementById('submitBtnText').textContent = '送出請款申請';
+  document.getElementById('cancelEditBtn').classList.add('hidden');
+  document.getElementById('fRequester').value = '';
+  selectedPurpose = '';
+  document.getElementById('fPurposeDetail').value = '';
+  renderPurposeChips();
+  items = [];
+  receiptKeys = [];
+  addItemRow();
+  renderReceiptThumbs();
+}
+
+function cancelEdit() {
+  resetForm();
+  document.getElementById('fDate').value = todayStr();
+}
+
+function editRequest(r) {
+  editingId = r.id;
+  document.getElementById('formTitle').textContent = '編輯請款申請';
+  document.getElementById('submitBtnText').textContent = '更新請款申請';
+  document.getElementById('cancelEditBtn').classList.remove('hidden');
+
+  document.getElementById('fDate').value = r.expense_date;
+  document.getElementById('fRequester').value = r.requester;
+
+  const parts = r.purpose.split('：');
+  selectedPurpose = parts[0];
+  document.getElementById('fPurposeDetail').value = parts.slice(1).join('：') || '';
+  renderPurposeChips();
+
+  items = r.items.map(it => ({ rid: genRowId(), name: it.name, unit_price: it.unit_price, qty: it.qty }));
+  renderItemRows();
+
+  receiptKeys = r.receipts.map(rc => rc.file_key);
+  renderReceiptThumbs();
+
+  document.getElementById('formCard').scrollIntoView({ behavior: 'smooth' });
+}
+
 async function submitRequest() {
   const expense_date = document.getElementById('fDate').value;
   const requester = document.getElementById('fRequester').value.trim();
@@ -227,18 +274,18 @@ async function submitRequest() {
   const validItems = items.filter(i => i.name && Number(i.unit_price) >= 0 && Number(i.qty) > 0);
   if (validItems.length === 0) return toast('請至少填寫一項品項', true);
 
+  const body = { expense_date, requester, purpose, items: validItems, receipt_keys: receiptKeys };
   try {
-    const res = await api('/api/expenses', { method: 'POST', body: { expense_date, requester, purpose, items: validItems, receipt_keys: receiptKeys } });
-    saveMyRequestId(res.id);
-    toast('請款申請已送出');
-    document.getElementById('fRequester').value = '';
-    selectedPurpose = '';
-    document.getElementById('fPurposeDetail').value = '';
-    renderPurposeChips();
-    items = [];
-    receiptKeys = [];
-    addItemRow();
-    renderReceiptThumbs();
+    if (editingId) {
+      await api('/api/expenses/' + editingId, { method: 'PATCH', body });
+      toast('請款申請已更新');
+    } else {
+      const res = await api('/api/expenses', { method: 'POST', body });
+      saveMyRequestId(res.id);
+      toast('請款申請已送出');
+    }
+    resetForm();
+    document.getElementById('fDate').value = todayStr();
     loadList();
   } catch (e) { toast(e.message, true); }
 }
@@ -253,6 +300,8 @@ function statusBadge(status) {
   return `<span class="badge ${cls}">${label}</span>`;
 }
 
+let myRequests = [];
+
 async function loadList() {
   const month = document.getElementById('monthFilter').value;
   const c = document.getElementById('reqList');
@@ -263,7 +312,8 @@ async function loadList() {
   }
   try {
     const data = await api('/api/expenses?ids=' + ids.join(','));
-    let requests = data.requests;
+    myRequests = data.requests;
+    let requests = myRequests;
     if (month) requests = requests.filter(r => r.expense_date.startsWith(month));
     if (requests.length === 0) {
       c.innerHTML = '<p class="text-center text-slate-300 text-lg py-8">尚無紀錄</p>';
@@ -282,10 +332,18 @@ async function loadList() {
           ${r.items.map(it => `<span class="text-[14px] bg-slate-50 border border-slate-100 rounded-lg px-2 py-1 text-slate-500 font-bold">${esc(it.name)} ×${it.qty} = ${fmtMoney(it.total)}</span>`).join('')}
         </div>
         ${r.receipts && r.receipts.length ? `<div class="mt-2 flex flex-wrap gap-2">${r.receipts.map(rc => receiptThumbHTML(rc.file_key, false)).join('')}</div>` : ''}
-        <div class="mt-2 text-right font-black text-indigo-600 text-lg">${fmtMoney(r.total_amount)}</div>
+        <div class="mt-2 flex items-center justify-between">
+          ${r.status === 'submitted' ? `<button onclick="editRequestById('${r.id}')" class="text-[15px] font-bold text-indigo-600 px-2 py-1 rounded-lg hover:bg-indigo-50">編輯</button>` : '<span></span>'}
+          <div class="font-black text-indigo-600 text-lg">${fmtMoney(r.total_amount)}</div>
+        </div>
       </div>
     `).join('');
   } catch (e) { toast(e.message, true); }
+}
+
+function editRequestById(id) {
+  const r = myRequests.find(x => x.id === id);
+  if (r) editRequest(r);
 }
 
 document.getElementById('fDate').value = todayStr();
