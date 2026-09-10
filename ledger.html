@@ -121,6 +121,9 @@
         </div>
         <div id="printStatus"></div>
       </div>
+      <div class="card p-0 overflow-x-auto">
+        <div id="printPreview"></div>
+      </div>
     </div>
   </div>
 </main>
@@ -527,6 +530,7 @@ async function loadPrintStatus() {
   document.getElementById('printMonth').value = month;
   try {
     const data = await api('/api/ledger/summary?month=' + month);
+    window.__printData = data;
     const c = document.getElementById('printStatus');
     if (!data.ready) {
       const reasons = [];
@@ -534,18 +538,17 @@ async function loadPrintStatus() {
       if (!data.reasons.allIncomeArchived) reasons.push('尚有奉獻未歸檔');
       if (!data.reasons.allRegularConfirmed) reasons.push('尚有經常費支出未確認完成');
       if (!data.reasons.reconciliationDone) reasons.push('本月銀行對帳尚未完成');
-      c.innerHTML = `<p class="text-base text-rose-500 font-bold mb-1">本月帳款尚未全部結算完成，無法列印：</p>
+      c.innerHTML = `<p class="text-base text-rose-500 font-bold mb-1">本月帳款尚未全部結算完成，以下為預覽，暫時無法列印／下載：</p>
         <ul class="text-base text-slate-500 list-disc pl-4">${reasons.map(r => `<li>${r}</li>`).join('')}</ul>`;
-      return;
+    } else {
+      c.innerHTML = `<button onclick="printStatement('${month}')" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-black text-lg">列印收支表（PDF）</button>`;
     }
-    c.innerHTML = `<button onclick="printStatement('${month}')" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-black text-lg">列印收支表（PDF）</button>`;
-    window.__printData = data;
+    document.getElementById('printPreview').innerHTML = buildStatementHTML(month, data);
   } catch (e) { toast(e.message, true); }
 }
-function printStatement(month) {
-  const data = window.__printData;
+function buildStatementHTML(month, data) {
   const t = data.totals;
-  const html = `
+  return `
     <div style="padding:32px;font-family:'Microsoft JhengHei',sans-serif;color:#111;">
       <h1 style="text-align:center;font-size:20px;font-weight:900;margin-bottom:4px;">林內鄉召會收支表</h1>
       <p style="text-align:center;font-size:13px;color:#555;margin-bottom:20px;">${month}</p>
@@ -577,7 +580,11 @@ function printStatement(month) {
       </div>
     </div>
   `;
-  document.getElementById('printArea').innerHTML = html;
+}
+function printStatement(month) {
+  const data = window.__printData;
+  if (!data || !data.ready) { toast('本月尚未全部結算完成，無法列印', true); return; }
+  document.getElementById('printArea').innerHTML = buildStatementHTML(month, data);
   setTimeout(() => window.print(), 100);
 }
 
