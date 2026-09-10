@@ -23,25 +23,27 @@ Cloudflare Pages + Functions + D1 + R2 建置的三層收支記帳系統。
    - **R2 bucket binding**：變數名稱 `FILES`，選擇 bucket `linnei-church-accounting-files`
 5. **Settings → Environment variables**，新增 Secret：
    - `SESSION_SECRET`：任意一串隨機長字串（登入 session 簽章用，務必設定，否則使用不安全的預設值）
-   - `GOOGLE_CLIENT_ID`、`ADMIN_EMAILS`：記帳 Google 登入用，見下方「Google 登入設定」
+   - `GOOGLE_CLIENT_ID`：記帳 Google 登入用，見下方「Google 登入設定」
    - `VAPID_PUBLIC_KEY`、`VAPID_PRIVATE_JWK`、`VAPID_SUBJECT`：推播提醒通知用，見下方「提醒通知設定」
 6. D1 資料庫結構已透過 `migrations/` 內各檔案建立完成（此 repo 對應的 Cloudflare 帳號已預先執行）。若需在新帳號重新建立，依檔名順序於 D1 資料庫的 **Console** 頁籤貼上各檔案內容執行即可。
 7. 奉獻密碼固定為 `2016`，App 內沒有自行變更密碼的功能；如需更換，直接在 D1 的 **Console** 頁籤執行 SQL 更新 `settings` 表的 `income_password_hash`／`income_password_salt`（雜湊方式見 `functions/_lib/auth.js` 的 `hashPassword`）。
 
 ## Google 登入設定（記帳頁）
 
-記帳頁不使用密碼，改用「使用 Google 帳號登入」按鈕，只有白名單信箱能登入：
+記帳頁不使用密碼，改用「使用 Google 帳號登入」按鈕：
 
 1. 前往 [Google Cloud Console](https://console.cloud.google.com/) → 建立（或選擇既有）專案。
-2. **APIs & Services → OAuth consent screen**：設定一次即可（User type 選 External，填基本資訊）。
-3. **APIs & Services → Credentials → Create Credentials → OAuth client ID**：
-   - Application type 選 **Web application**
-   - **Authorized JavaScript origins** 填你的網域，例如 `https://church-in-linnei.pages.dev`（正式網域也要加）
-   - 建立後複製得到的 **Client ID**（長得像 `xxxxxxxx.apps.googleusercontent.com`）
-4. 回 Cloudflare Pages **Settings → Environment variables**，新增 Secret：
-   - `GOOGLE_CLIENT_ID`：貼上剛剛的 Client ID
-   - `ADMIN_EMAILS`：允許登入的 Google 信箱，多個用逗號分隔，例如 `alice55505@gmail.com`
-5. 設定完成後重新部署一次，`/ledger.html` 就會顯示「使用 Google 帳號登入」按鈕。
+2. **Google Auth Platform → 目標對象**：User type 選 **External**，填基本資訊。維持「測試中」狀態即可（不需要發布為正式版）。
+3. **Google Auth Platform → 用戶端 → 建立用戶端**：
+   - 應用程式類型選 **網頁應用程式**
+   - **已授權的 JavaScript 來源** 填你的網域，例如 `https://church-in-linnei.pages.dev`（正式網域也要加）
+   - 建立後複製得到的 **用戶端 ID**（長得像 `xxxxxxxx.apps.googleusercontent.com`），不需要用戶端密碼
+4. **Google Auth Platform → 目標對象 → 測試使用者**：把要開放登入記帳頁的每個 Google 信箱加進來（自己的也要加）。之後要開放新的人，只需要回這裡加信箱即可。
+5. 回 Cloudflare Pages **Settings → Environment variables**，新增 Secret：
+   - `GOOGLE_CLIENT_ID`：貼上剛剛的用戶端 ID
+6. 設定完成後重新部署一次，`/ledger.html` 就會顯示「使用 Google 帳號登入」按鈕。
+
+只要維持「測試中」狀態，誰能登入完全由 Google 的「測試使用者」名單決定，不需要另外在 Cloudflare 設定白名單。若日後把應用程式發布為正式版（不再限制測試使用者），可額外設定 Secret `ADMIN_EMAILS`（多個信箱用逗號分隔）重新啟用白名單檢查，否則任何 Google 帳號都能登入記帳頁。
 
 ## PWA（可安裝成 App）
 

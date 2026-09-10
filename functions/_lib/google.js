@@ -46,9 +46,13 @@ export async function verifyGoogleIdToken(env, credential) {
   );
   if (!valid) throw new Error('登入憑證簽章驗證失敗');
 
-  const allowed = (env.ADMIN_EMAILS || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
   const email = String(payload.email || '').toLowerCase();
-  if (!allowed.includes(email)) throw new Error('此 Google 帳號沒有管理權限');
+
+  // ADMIN_EMAILS 為選填的第二道白名單：未設定時，只要能通過 Google 登入（例如 Google Cloud Console
+  // 的「測試使用者」名單）即可取得記帳權限；若日後把 OAuth 應用程式發布為正式版（不再限制測試使用者），
+  // 可設定此變數重新啟用白名單檢查。
+  const allowed = (env.ADMIN_EMAILS || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  if (allowed.length > 0 && !allowed.includes(email)) throw new Error('此 Google 帳號沒有管理權限');
 
   return { email };
 }
