@@ -32,18 +32,8 @@ export async function onRequestPatch({ request, env, params }) {
     return json({ ok: true });
   }
 
-  // 會計核對簽名：需由會計本人查看轉帳記錄相片與登記金額確認相符後簽名，與負責弟兄簽名分開、獨立審核
-  if (action === 'sign_accountant') {
-    const key = await saveDataUrlImage(env, body.signature, 'signatures');
-    if (!key) return badRequest('缺少會計簽名');
-    await env.DB.prepare('UPDATE regular_expense_items SET accountant_signature_key=?, accountant_signed_at=? WHERE id=?')
-      .bind(key, nowISO(), row.id).run();
-    return json({ ok: true });
-  }
-
   if (action === 'confirm') {
     if (!row.payment_proof_key) return badRequest('需先上傳轉帳記錄相片');
-    if (!row.accountant_signature_key) return badRequest('需先由會計核對金額並簽名');
     if (!row.incharge_signature_key) return badRequest('需先由負責弟兄簽名');
     await env.DB.prepare("UPDATE regular_expense_items SET status='confirmed' WHERE id=?").bind(row.id).run();
     return json({ ok: true });

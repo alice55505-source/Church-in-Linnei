@@ -272,8 +272,6 @@ async function loadExpenses() {
             ${e.receipt_proof_key ? '<span class="text-[14px] text-emerald-600 font-bold">已上傳簽收/轉帳截圖</span>' :
               `<label class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black cursor-pointer">上傳簽收照片
                 <input type="file" accept="image/*" capture="environment" class="hidden" onchange="ledgerAttachReceipt('${e.id}', this)"></label>`}
-            ${e.accountant_signature_key ? '<span class="text-[14px] text-emerald-600 font-bold">會計已核對簽名</span>' :
-              `<button onclick="ledgerSignAccountant('${e.id}')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">會計核對簽名</button>`}
             ${e.incharge_signature_key ? '<span class="text-[14px] text-emerald-600 font-bold">負責弟兄已簽名</span>' :
               `<button onclick="ledgerSignIncharge('${e.id}')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">負責弟兄簽名</button>`}
             <button onclick="ledgerFinalize('${e.id}')" class="text-[15px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認入帳</button>
@@ -291,12 +289,6 @@ async function ledgerSignIncharge(id) {
   const sig = await askForSignature('負責弟兄簽名');
   if (!sig) return;
   try { await api('/api/ledger/expenses/' + id, { method: 'PATCH', body: { action: 'sign_incharge', signature: sig } }); toast('已簽名'); loadExpenses(); }
-  catch (e) { toast(e.message, true); }
-}
-async function ledgerSignAccountant(id) {
-  const sig = await askForSignature('會計核對簽名（請先核對憑證金額與登記金額相符）');
-  if (!sig) return;
-  try { await api('/api/ledger/expenses/' + id, { method: 'PATCH', body: { action: 'sign_accountant', signature: sig } }); toast('已簽名'); loadExpenses(); }
   catch (e) { toast(e.message, true); }
 }
 async function ledgerAttachReceipt(id, input) {
@@ -319,13 +311,18 @@ async function loadIncomeOverview() {
   try {
     const data = await api('/api/income');
     const archived = data.sessions.filter(s => s.status === 'archived');
+    const pending = data.sessions.filter(s => s.status !== 'archived');
     const c = document.getElementById('incomeOverview');
-    c.innerHTML = archived.length === 0 ? '<p class="text-base text-slate-300 text-center py-3">尚無已歸檔紀錄</p>' :
+    const pendingHTML = pending.length > 0
+      ? `<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-base font-bold text-amber-700 mb-2">⚠️ 尚有 ${pending.length} 筆奉獻紀錄未入帳（暫存中，待奉獻頁簽名/簽收後歸檔）</div>`
+      : '';
+    const listHTML = archived.length === 0 ? '<p class="text-base text-slate-300 text-center py-3">尚無已歸檔紀錄</p>' :
       archived.map(s => `
         <div class="border border-slate-100 rounded-xl p-3 text-base font-bold text-slate-600">
           <div class="flex justify-between"><span>${s.session_date}</span><span class="text-indigo-600">${fmtMoney(s.amount_general + s.amount_fulltime + s.amount_taiwan_gospel + s.amount_overseas + s.amount_other)}</span></div>
         </div>
       `).join('');
+    c.innerHTML = pendingHTML + listHTML;
   } catch (e) { toast(e.message, true); }
 }
 
@@ -348,8 +345,6 @@ async function loadRegular() {
             ${it.payment_proof_key ? '<span class="text-[14px] text-emerald-600 font-bold">已上傳轉帳記錄</span>' :
               `<label class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black cursor-pointer">上傳轉帳記錄
                 <input type="file" accept="image/*" capture="environment" class="hidden" onchange="regularAttachProof('${it.id}', this)"></label>`}
-            ${it.accountant_signature_key ? '<span class="text-[14px] text-emerald-600 font-bold">會計已核對簽名</span>' :
-              `<button onclick="regularSignAccountant('${it.id}')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">會計核對簽名</button>`}
             ${it.incharge_signature_key ? '<span class="text-[14px] text-emerald-600 font-bold">負責弟兄已簽名</span>' :
               `<button onclick="regularSignIncharge('${it.id}')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">負責弟兄簽名</button>`}
             <button onclick="regularConfirm('${it.id}')" class="text-[15px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認完成</button>
@@ -386,12 +381,6 @@ async function regularSignIncharge(id) {
   try { await api('/api/ledger/regular/' + id, { method: 'PATCH', body: { action: 'sign_incharge', signature: sig } }); toast('已簽名'); loadRegular(); }
   catch (e) { toast(e.message, true); }
 }
-async function regularSignAccountant(id) {
-  const sig = await askForSignature('會計核對簽名（請先核對轉帳記錄金額與登記金額相符）');
-  if (!sig) return;
-  try { await api('/api/ledger/regular/' + id, { method: 'PATCH', body: { action: 'sign_accountant', signature: sig } }); toast('已簽名'); loadRegular(); }
-  catch (e) { toast(e.message, true); }
-}
 async function regularConfirm(id) {
   try { await api('/api/ledger/regular/' + id, { method: 'PATCH', body: { action: 'confirm' } }); toast('已確認完成'); loadRegular(); }
   catch (e) { toast(e.message, true); }
@@ -407,11 +396,29 @@ async function loadRecon() {
   const month = document.getElementById('reconMonth').value || thisMonthStr();
   document.getElementById('reconMonth').value = month;
   try {
-    const data = await api('/api/ledger/reconciliation?month=' + month);
+    const [data, summary] = await Promise.all([
+      api('/api/ledger/reconciliation?month=' + month),
+      api('/api/ledger/summary?month=' + month).catch(() => null)
+    ]);
     const c = document.getElementById('reconContent');
     const computed = fmtMoney(data.computed_balance);
+    const breakdownHTML = summary ? `
+      <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 text-base font-bold text-slate-600 space-y-1 mb-3">
+        <div class="text-[14px] text-slate-400 uppercase tracking-widest mb-1">本月項目對帳（會計核對用）</div>
+        <div class="flex justify-between"><span>本月奉獻（收入）</span><span>${fmtMoney(summary.totals.totalIncome)}</span></div>
+        <div class="flex justify-between"><span>本月支出（含經常費）</span><span>${fmtMoney(summary.totals.totalExpense)}</span></div>
+        <div class="flex justify-between text-[14px] text-slate-400">
+          <span>支出未全部入帳</span><span>${summary.reasons.allExpensesSettled ? '否' : '是，請至「支出記帳」處理'}</span>
+        </div>
+        <div class="flex justify-between text-[14px] text-slate-400">
+          <span>奉獻未全部歸檔</span><span>${summary.reasons.allIncomeArchived ? '否' : '是，請至「奉獻」頁處理'}</span>
+        </div>
+        <div class="flex justify-between text-[14px] text-slate-400">
+          <span>經常費未全部完成</span><span>${summary.reasons.allRegularConfirmed ? '否' : '是，請至「經常費支出」處理'}</span>
+        </div>
+      </div>` : '';
     if (!data.exists) {
-      c.innerHTML = `
+      c.innerHTML = breakdownHTML + `
         <p class="text-base text-slate-500 font-bold">記帳累計結餘：${computed}</p>
         <div class="space-y-2 mt-2">
           <input type="number" id="bankBalance" placeholder="銀行帳戶實際餘額" class="w-full px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
@@ -425,7 +432,7 @@ async function loadRecon() {
     }
     const r = data.record;
     const diff = (r.bank_balance || 0) - (r.computed_balance || 0);
-    c.innerHTML = `
+    c.innerHTML = breakdownHTML + `
       <div class="text-base font-bold text-slate-600 space-y-1">
         <div>記帳累計結餘：${fmtMoney(r.computed_balance)}</div>
         <div>銀行帳戶餘額：${fmtMoney(r.bank_balance)}</div>
