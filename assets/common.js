@@ -69,6 +69,12 @@ function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// 刪除類操作用：需手動輸入「刪除」兩個字才視為確認，避免誤按
+function confirmDelete(message) {
+  const input = prompt((message || '確定要刪除嗎？此動作無法復原。') + '\n\n請輸入「刪除」兩個字以確認：');
+  return input === '刪除';
+}
+
 function toast(msg, isError) {
   let el = document.getElementById('__toast');
   if (!el) {

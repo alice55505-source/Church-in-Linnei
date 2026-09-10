@@ -1,4 +1,5 @@
-import { uid, nowISO, json, badRequest } from '../../_lib/db.js';
+import { requireTier } from '../../_lib/auth.js';
+import { uid, nowISO, json, badRequest, unauthorized } from '../../_lib/db.js';
 
 export async function onRequestGet({ params, env }) {
   const r = await env.DB.prepare('SELECT * FROM expense_requests WHERE id=?').bind(params.id).first();
@@ -56,15 +57,26 @@ export async function onRequestPatch({ request, env, params }) {
   return json({ ok: true, total_amount: total });
 }
 
-// 同樣僅限尚未記帳前可刪除
-export async function onRequestDelete({ params, env }) {
+// 尚未記帳（submitted）：請款人本人（知道 id 即可）可刪除。
+// 已記帳但未入帳（booked）：僅記帳頁（ledger 登入）可刪除，一併移除記帳資料。
+// 已入帳（archived/finalized）：一律不可刪除，為正式財務紀錄。
+export async function onRequestDelete({ request, env, params }) {
   const row = await env.DB.prepare('SELECT * FROM expense_requests WHERE id=?').bind(params.id).first();
   if (!row) return json({ error: '找不到資料' }, 404);
-  if (row.status !== 'submitted') return badRequest('此請款單已開始記帳，無法刪除');
+
+  if (row.status === 'booked') {
+    const session = await requireTier(request, env, 'ledger');
+    if (!session) return unauthorized();
+    const le = await env.DB.prepare('SELECT status FROM ledger_expenses WHERE request_id=?').bind(row.id).first();
+    if (le && le.status === 'finalized') return badRequest('已入帳，無法刪除');
+  } else if (row.status !== 'submitted') {
+    return badRequest('已入帳，無法刪除');
+  }
 
   await env.DB.batch([
     env.DB.prepare('DELETE FROM expense_items WHERE request_id=?').bind(row.id),
     env.DB.prepare('DELETE FROM expense_request_receipts WHERE request_id=?').bind(row.id),
+    env.DB.prepare('DELETE FROM ledger_expenses WHERE request_id=?').bind(row.id),
     env.DB.prepare('DELETE FROM expense_requests WHERE id=?').bind(row.id)
   ]);
   return json({ ok: true });

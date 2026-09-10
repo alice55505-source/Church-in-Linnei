@@ -251,7 +251,10 @@ async function loadExpenses() {
               <div class="font-bold text-lg text-slate-700">${esc(r.purpose)}</div>
               <div class="text-[15px] text-slate-400 font-medium">${r.expense_date} ・ ${esc(r.requester)} ・ ${fmtMoney(r.total_amount)}</div>
             </div>
-            <button onclick="bookExpense('${r.id}')" class="bg-slate-800 text-white px-3 py-1.5 rounded-lg font-black text-base shrink-0">記帳</button>
+            <div class="flex gap-2 shrink-0">
+              <button onclick="deleteExpenseRequest('${r.id}')" class="text-rose-500 px-2 py-1.5 rounded-lg font-black text-base">刪除</button>
+              <button onclick="bookExpense('${r.id}')" class="bg-slate-800 text-white px-3 py-1.5 rounded-lg font-black text-base">記帳</button>
+            </div>
           </div>
           ${receiptThumbsHTML(r.receipts)}
         </div>
@@ -279,6 +282,7 @@ async function loadExpenses() {
               `<label class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black cursor-pointer">上傳轉帳截圖（選填）
                 <input type="file" accept="image/*" capture="environment" class="hidden" onchange="ledgerAttachReceipt('${e.id}', this)"></label>`}
             <button onclick="ledgerFinalize('${e.id}')" class="text-[15px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認入帳</button>
+            <button onclick="deleteExpenseRequest('${e.request_id}')" class="text-[15px] text-rose-500 px-2 py-1.5 rounded-lg font-black">刪除</button>
           </div>` : ''}
         </div>
       `).join('');
@@ -287,6 +291,11 @@ async function loadExpenses() {
 async function bookExpense(id) {
   const booked_by = prompt('記帳人（選填）') || '';
   try { await api('/api/ledger/expenses', { method: 'POST', body: { request_id: id, booked_by } }); toast('已建立記帳項目'); loadExpenses(); }
+  catch (e) { toast(e.message, true); }
+}
+async function deleteExpenseRequest(id) {
+  if (!confirmDelete('確定刪除此筆請款單？已入帳的無法刪除。')) return;
+  try { await api('/api/expenses/' + id, { method: 'DELETE' }); toast('已刪除'); loadExpenses(); }
   catch (e) { toast(e.message, true); }
 }
 async function ledgerSignIncharge(id) {

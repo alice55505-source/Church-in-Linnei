@@ -355,7 +355,7 @@ function editRequestById(id) {
 }
 
 async function deleteRequest(id) {
-  if (!confirm('確定刪除此筆請款申請？')) return;
+  if (!confirmDelete('確定刪除此筆請款申請？')) return;
   try {
     await api('/api/expenses/' + id, { method: 'DELETE' });
     forgetMyRequestId(id);
