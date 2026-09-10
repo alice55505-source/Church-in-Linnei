@@ -81,7 +81,7 @@
     <!-- ===== 收入總覽 ===== -->
     <div id="tab-income" class="tab space-y-4">
       <div class="card p-4">
-        <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">奉獻收入（唯讀，已歸檔）</h2>
+        <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">奉獻（唯讀，已歸檔）</h2>
         <div id="incomeOverview" class="space-y-2"></div>
       </div>
     </div>
@@ -450,7 +450,7 @@ async function loadPrintStatus() {
     if (!data.ready) {
       const reasons = [];
       if (!data.reasons.allExpensesSettled) reasons.push('尚有支出未完成入帳');
-      if (!data.reasons.allIncomeArchived) reasons.push('尚有奉獻收入未歸檔');
+      if (!data.reasons.allIncomeArchived) reasons.push('尚有奉獻未歸檔');
       if (!data.reasons.allRegularConfirmed) reasons.push('尚有經常費支出未確認完成');
       if (!data.reasons.reconciliationDone) reasons.push('本月銀行對帳尚未完成');
       c.innerHTML = `<p class="text-xs text-rose-500 font-bold mb-1">本月帳款尚未全部結算完成，無法列印：</p>
