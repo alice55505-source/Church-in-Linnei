@@ -453,14 +453,14 @@ async function loadRecon() {
         <div class="text-[14px] text-slate-400 uppercase tracking-widest mb-1">本月項目對帳（會計核對用）</div>
         <div class="flex justify-between"><span>本月奉獻（收入）</span><span>${fmtMoney(summary.totals.totalIncome)}</span></div>
         <div class="flex justify-between"><span>本月支出（含經常費）</span><span>${fmtMoney(summary.totals.totalExpense)}</span></div>
-        <div class="flex justify-between text-[14px] text-slate-400">
-          <span>支出未全部入帳</span><span>${summary.reasons.allExpensesSettled ? '否' : '是，請至「支出記帳」處理'}</span>
+        <div class="flex justify-between text-[14px] ${summary.reasons.allExpensesSettled ? 'text-emerald-600' : 'text-rose-500'}">
+          <span>支出記帳進度</span><span>${summary.reasons.allExpensesSettled ? '已全部入帳' : '尚未全部入帳，請至「支出記帳」處理'}</span>
         </div>
-        <div class="flex justify-between text-[14px] text-slate-400">
-          <span>奉獻未全部歸檔</span><span>${summary.reasons.allIncomeArchived ? '否' : '是，請至「奉獻」頁處理'}</span>
+        <div class="flex justify-between text-[14px] ${summary.reasons.allIncomeArchived ? 'text-emerald-600' : 'text-rose-500'}">
+          <span>奉獻歸檔進度</span><span>${summary.reasons.allIncomeArchived ? '已全部歸檔' : '尚未全部歸檔，請至「奉獻」頁處理'}</span>
         </div>
-        <div class="flex justify-between text-[14px] text-slate-400">
-          <span>經常費未全部完成</span><span>${summary.reasons.allRegularConfirmed ? '否' : '是，請至「經常費支出」處理'}</span>
+        <div class="flex justify-between text-[14px] ${summary.reasons.allRegularConfirmed ? 'text-emerald-600' : 'text-rose-500'}">
+          <span>經常費完成進度</span><span>${summary.reasons.allRegularConfirmed ? '已全部完成' : '尚未全部完成，請至「經常費支出」處理'}</span>
         </div>
       </div>` : '';
     if (!data.exists) {
