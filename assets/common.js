@@ -146,6 +146,16 @@ function fileUrl(key) {
   return key ? '/api/files/' + key : '';
 }
 
+// 點圖片放大預覽用；點任意處關閉
+function openImagePreview(url) {
+  if (!url) return;
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML = `<img src="${url}" style="max-width:100%;max-height:100%;border-radius:12px;">`;
+  overlay.addEventListener('click', () => overlay.remove());
+  document.body.appendChild(overlay);
+}
+
 // 簡易簽名對話框；resolve(dataURL) 或使用者取消則 resolve(null)
 // 防止手誤連點造成多個簽名框疊在一起（疊起來時按「取消」只會關掉最上面那個，
 // 看起來像按不掉）：同時間只允許一個簽名框存在。

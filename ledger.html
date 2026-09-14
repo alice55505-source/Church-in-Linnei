@@ -244,8 +244,14 @@ function receiptThumbsHTML(receipts) {
     const isPdf = rc.file_key.toLowerCase().endsWith('.pdf');
     return isPdf
       ? `<a href="${fileUrl(rc.file_key)}" target="_blank" class="text-[14px] bg-slate-50 border border-slate-100 rounded-lg px-2 py-1 text-slate-500 font-bold">📄 PDF</a>`
-      : `<a href="${fileUrl(rc.file_key)}" target="_blank"><img src="${fileUrl(rc.file_key)}" class="w-10 h-10 object-cover rounded-lg border border-slate-200"></a>`;
+      : `<img src="${fileUrl(rc.file_key)}" onclick="openImagePreview('${fileUrl(rc.file_key)}')" class="w-10 h-10 object-cover rounded-lg border border-slate-200 cursor-pointer">`;
   }).join('')}</div>`;
+}
+// 簽名/憑證小縮圖，點下去放大預覽
+function sigThumb(key) {
+  if (!key) return '';
+  const url = fileUrl(key);
+  return `<img src="${url}" onclick="openImagePreview('${url}')" class="h-9 border border-slate-200 rounded-lg bg-white p-0.5 cursor-pointer">`;
 }
 
 // 金額不符時（僅月結對帳，因為那裡比對的是銀行實際餘額與系統結餘兩個獨立來源），
@@ -297,17 +303,18 @@ async function loadExpenses() {
             <span class="badge ${e.status === 'finalized' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${e.status === 'finalized' ? '已入帳' : '記帳中'}</span>
           </div>
           ${receiptThumbsHTML(e.receipts)}
-          <div class="flex flex-wrap gap-2">
-            ${e.status === 'finalized' ? '' : `
-            ${e.requester_signature_key ? '<span class="text-[14px] text-emerald-600 font-bold">請款人已簽收</span>' :
-              `<button onclick="ledgerSignRequester('${e.id}')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">請款人簽收</button>`}
-            ${e.incharge_signature_key ? '<span class="text-[14px] text-emerald-600 font-bold">負責弟兄已簽名</span>' :
-              `<button onclick="ledgerSignIncharge('${e.id}')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">負責弟兄簽名</button>`}
-            ${e.receipt_proof_key ? '<span class="text-[14px] text-emerald-600 font-bold">已上傳轉帳截圖</span>' :
-              `<label class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black cursor-pointer">上傳轉帳截圖（選填）
-                <input type="file" accept="image/*" capture="environment" class="hidden" onchange="ledgerAttachReceipt('${e.id}', this)"></label>`}
-            <button onclick="ledgerFinalize('${e.id}')" class="text-[15px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認入帳</button>
-            `}
+          <div class="flex flex-wrap items-center gap-2">
+            ${e.requester_signature_key
+              ? `<span class="text-[14px] text-emerald-600 font-bold">請款人已簽收</span>${sigThumb(e.requester_signature_key)}`
+              : (e.status === 'finalized' ? '' : `<button onclick="ledgerSignRequester('${e.id}')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">請款人簽收</button>`)}
+            ${e.incharge_signature_key
+              ? `<span class="text-[14px] text-emerald-600 font-bold">負責弟兄已簽名</span>${sigThumb(e.incharge_signature_key)}`
+              : (e.status === 'finalized' ? '' : `<button onclick="ledgerSignIncharge('${e.id}')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">負責弟兄簽名</button>`)}
+            ${e.receipt_proof_key
+              ? `<span class="text-[14px] text-emerald-600 font-bold">已上傳轉帳截圖</span>${sigThumb(e.receipt_proof_key)}`
+              : (e.status === 'finalized' ? '' : `<label class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black cursor-pointer">上傳轉帳截圖（選填）
+                <input type="file" accept="image/*" capture="environment" class="hidden" onchange="ledgerAttachReceipt('${e.id}', this)"></label>`)}
+            ${e.status === 'finalized' ? '' : `<button onclick="ledgerFinalize('${e.id}')" class="text-[15px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認入帳</button>`}
             <button onclick="deleteExpenseRequest('${e.request_id}')" class="text-[15px] text-rose-500 px-2 py-1.5 rounded-lg font-black">刪除</button>
           </div>
         </div>
@@ -385,13 +392,16 @@ async function loadIncomeOverview() {
           <div class="space-y-1 pt-1 border-t border-slate-100">
             <div class="text-[14px] font-bold text-slate-400">個人奉獻</div>
             ${s.personal_offerings.map(o => `
-              <div class="flex items-center justify-between text-base font-bold text-slate-600">
+              <div class="flex items-center justify-between text-base font-bold text-slate-600 gap-2">
                 <span>${esc(o.church_name)} ${esc(o.person_name)} × ${o.bag_count}包</span>
-                <span class="text-[14px] ${o.recipient_signature_key ? 'text-emerald-600' : 'text-amber-600'}">${o.recipient_signature_key ? '已簽收' : '未簽收'}</span>
+                <span class="flex items-center gap-1">
+                  <span class="text-[14px] ${o.recipient_signature_key ? 'text-emerald-600' : 'text-amber-600'}">${o.recipient_signature_key ? '已簽收' : '未簽收'}</span>
+                  ${sigThumb(o.recipient_signature_key)}
+                </span>
               </div>
             `).join('')}
           </div>` : ''}
-          <div class="text-[14px] font-bold ${s.incharge_signature_key ? 'text-emerald-600' : 'text-amber-600'}">負責弟兄簽名：${s.incharge_signature_key ? '已簽名' : '尚未簽名'}</div>
+          <div class="text-[14px] font-bold ${s.incharge_signature_key ? 'text-emerald-600' : 'text-amber-600'} flex items-center gap-1">負責弟兄簽名：${s.incharge_signature_key ? '已簽名' : '尚未簽名'}${sigThumb(s.incharge_signature_key)}</div>
           <button onclick="deleteIncomeSession('${s.id}')" class="text-[15px] bg-rose-50 text-rose-500 px-2 py-1.5 rounded-lg font-black">刪除</button>
         </div>
       `).join('');
@@ -418,16 +428,17 @@ async function loadRegular() {
             <div class="font-bold text-lg text-slate-700">${esc(it.name)} <span class="text-indigo-600">${fmtMoney(it.amount)}</span></div>
             <span class="badge ${it.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${it.status === 'confirmed' ? '已完成' : '未完成'}</span>
           </div>
-          ${it.status !== 'confirmed' ? `
-          <div class="flex flex-wrap gap-2">
-            ${it.payment_proof_key ? '<span class="text-[14px] text-emerald-600 font-bold">已上傳轉帳記錄</span>' :
-              `<label class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black cursor-pointer">上傳轉帳記錄
-                <input type="file" accept="image/*" capture="environment" class="hidden" onchange="regularAttachProof('${it.id}', this)"></label>`}
-            ${it.incharge_signature_key ? '<span class="text-[14px] text-emerald-600 font-bold">負責弟兄已簽名</span>' :
-              `<button onclick="regularSignIncharge('${it.id}')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">負責弟兄簽名</button>`}
-            <button onclick="regularConfirm('${it.id}')" class="text-[15px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認完成</button>
-            <button onclick="regularDelete('${it.id}')" class="text-[15px] bg-rose-50 text-rose-500 px-2 py-1.5 rounded-lg font-black">刪除</button>
-          </div>` : ''}
+          <div class="flex flex-wrap items-center gap-2">
+            ${it.payment_proof_key
+              ? `<span class="text-[14px] text-emerald-600 font-bold">已上傳轉帳記錄</span>${sigThumb(it.payment_proof_key)}`
+              : (it.status === 'confirmed' ? '' : `<label class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black cursor-pointer">上傳轉帳記錄
+                <input type="file" accept="image/*" capture="environment" class="hidden" onchange="regularAttachProof('${it.id}', this)"></label>`)}
+            ${it.incharge_signature_key
+              ? `<span class="text-[14px] text-emerald-600 font-bold">負責弟兄已簽名</span>${sigThumb(it.incharge_signature_key)}`
+              : (it.status === 'confirmed' ? '' : `<button onclick="regularSignIncharge('${it.id}')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">負責弟兄簽名</button>`)}
+            ${it.status !== 'confirmed' ? `<button onclick="regularConfirm('${it.id}')" class="text-[15px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認完成</button>
+            <button onclick="regularDelete('${it.id}')" class="text-[15px] bg-rose-50 text-rose-500 px-2 py-1.5 rounded-lg font-black">刪除</button>` : ''}
+          </div>
         </div>
       `).join('');
   } catch (e) { toast(e.message, true); }
@@ -533,17 +544,22 @@ async function loadRecon() {
         <div>記帳累計結餘：${fmtMoney(r.computed_balance)}</div>
         <div>銀行帳戶餘額：${fmtMoney(r.bank_balance)}</div>
         <div class="${diff === 0 ? 'text-emerald-600' : 'text-rose-500'}">差額：${fmtMoney(diff)}${diff === 0 ? '（相符）' : ''}</div>
-        <img src="${fileUrl(r.bank_statement_key)}" class="rounded-xl border border-slate-100 mt-2 max-h-48">
+        <img src="${fileUrl(r.bank_statement_key)}" onclick="openImagePreview('${fileUrl(r.bank_statement_key)}')" class="rounded-xl border border-slate-100 mt-2 max-h-48 cursor-pointer">
       </div>
       <span class="badge ${r.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'} mt-2 inline-block">${r.status === 'confirmed' ? '本月已完成' : '待簽名'}</span>
       ${r.amount_override_note ? `<div class="text-[14px] font-bold text-amber-600 mt-1">差額說明：${esc(r.amount_override_note)}</div>` : ''}
-      ${r.status !== 'confirmed' ? `
-      <div class="flex flex-wrap gap-2 mt-2">
-        ${r.cashier_signature_key ? '<span class="text-[14px] text-emerald-600 font-bold">出納已簽名</span>' : `<button onclick="reconSign('${month}','cashier')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">出納簽名</button>`}
-        ${r.accountant_signature_key ? '<span class="text-[14px] text-emerald-600 font-bold">會計已簽名</span>' : `<button onclick="reconSign('${month}','accountant')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">會計簽名</button>`}
-        ${r.incharge_signature_key ? '<span class="text-[14px] text-emerald-600 font-bold">負責弟兄已簽名</span>' : `<button onclick="reconSign('${month}','incharge')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">負責弟兄簽名</button>`}
-        <button onclick="reconConfirm('${month}')" class="text-[15px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認完成</button>
-      </div>` : ''}
+      <div class="flex flex-wrap items-center gap-2 mt-2">
+        ${r.cashier_signature_key
+          ? `<span class="text-[14px] text-emerald-600 font-bold">出納已簽名</span>${sigThumb(r.cashier_signature_key)}`
+          : (r.status === 'confirmed' ? '' : `<button onclick="reconSign('${month}','cashier')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">出納簽名</button>`)}
+        ${r.accountant_signature_key
+          ? `<span class="text-[14px] text-emerald-600 font-bold">會計已簽名</span>${sigThumb(r.accountant_signature_key)}`
+          : (r.status === 'confirmed' ? '' : `<button onclick="reconSign('${month}','accountant')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">會計簽名</button>`)}
+        ${r.incharge_signature_key
+          ? `<span class="text-[14px] text-emerald-600 font-bold">負責弟兄已簽名</span>${sigThumb(r.incharge_signature_key)}`
+          : (r.status === 'confirmed' ? '' : `<button onclick="reconSign('${month}','incharge')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">負責弟兄簽名</button>`)}
+        ${r.status !== 'confirmed' ? `<button onclick="reconConfirm('${month}')" class="text-[15px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認完成</button>` : ''}
+      </div>
     `;
   } catch (e) { toast(e.message, true); }
 }
