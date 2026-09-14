@@ -147,9 +147,16 @@ function fileUrl(key) {
 }
 
 // 簡易簽名對話框；resolve(dataURL) 或使用者取消則 resolve(null)
+// 防止手誤連點造成多個簽名框疊在一起（疊起來時按「取消」只會關掉最上面那個，
+// 看起來像按不掉）：同時間只允許一個簽名框存在。
+let __signatureOverlayOpen = false;
 function askForSignature(title) {
+  document.querySelectorAll('[data-sig-overlay]').forEach(el => el.remove());
+  if (__signatureOverlayOpen) return Promise.resolve(null);
+  __signatureOverlayOpen = true;
   return new Promise(resolve => {
     const overlay = document.createElement('div');
+    overlay.dataset.sigOverlay = '1';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:flex-end;justify-content:center;';
     overlay.innerHTML = `
       <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px;">
@@ -164,15 +171,18 @@ function askForSignature(title) {
     document.body.appendChild(overlay);
     const canvas = overlay.querySelector('canvas');
     const pad = makeSignaturePad(canvas);
+    function close(value) {
+      overlay.remove();
+      __signatureOverlayOpen = false;
+      resolve(value);
+    }
     overlay.addEventListener('click', e => {
       const act = e.target.getAttribute('data-act');
       if (act === 'clear') pad.clear();
-      if (act === 'cancel') { document.body.removeChild(overlay); resolve(null); }
+      if (act === 'cancel') close(null);
       if (act === 'ok') {
         if (pad.isEmpty()) { toast('請先簽名', true); return; }
-        const url = pad.getDataURL();
-        document.body.removeChild(overlay);
-        resolve(url);
+        close(pad.getDataURL());
       }
     });
   });
