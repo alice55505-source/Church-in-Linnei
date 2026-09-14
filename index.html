@@ -57,8 +57,7 @@
 
     <div class="space-y-2">
       <label class="text-[14px] font-bold text-slate-400 ml-1">用途</label>
-      <div id="purposeChips" class="flex flex-wrap gap-2"></div>
-      <input type="text" id="fPurposeDetail" placeholder="請輸入名稱" class="hidden w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
+      <input type="text" id="fPurposeDetail" placeholder="請輸入用途名稱" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
     </div>
 
     <div class="space-y-2">
@@ -103,31 +102,12 @@
 <script>
 let items = [];
 let receiptKeys = [];
-let selectedPurpose = '';
 let editingId = null;
-
-const PURPOSE_OPTIONS = ['兒少活動', '兒少愛宴', '主日愛宴', '會所物品採購', '相調支出', '特會支出', '其他'];
 
 function genRowId() { return 'r' + Math.random().toString(36).slice(2, 9); }
 
-function renderPurposeChips() {
-  const c = document.getElementById('purposeChips');
-  c.innerHTML = PURPOSE_OPTIONS.map(p => `
-    <button type="button" onclick="selectPurpose('${p}')" class="chip ${selectedPurpose === p ? 'selected' : ''}">${p}</button>
-  `).join('');
-  const detailInput = document.getElementById('fPurposeDetail');
-  detailInput.classList.toggle('hidden', !selectedPurpose);
-  detailInput.placeholder = '請輸入名稱';
-}
-function selectPurpose(p) {
-  selectedPurpose = p;
-  document.getElementById('fPurposeDetail').value = '';
-  renderPurposeChips();
-}
 function getPurposeValue() {
-  if (!selectedPurpose) return '';
-  const detail = document.getElementById('fPurposeDetail').value.trim();
-  return detail ? selectedPurpose + '：' + detail : selectedPurpose;
+  return document.getElementById('fPurposeDetail').value.trim();
 }
 
 // 這支手機自己送出過的請款單，只存在本機 localStorage，不會上傳到伺服器
@@ -230,9 +210,7 @@ function resetForm() {
   document.getElementById('submitBtnText').textContent = '送出請款申請';
   document.getElementById('cancelEditBtn').classList.add('hidden');
   document.getElementById('fRequester').value = '';
-  selectedPurpose = '';
   document.getElementById('fPurposeDetail').value = '';
-  renderPurposeChips();
   items = [];
   receiptKeys = [];
   addItemRow();
@@ -253,10 +231,7 @@ function editRequest(r) {
   document.getElementById('fDate').value = r.expense_date;
   document.getElementById('fRequester').value = r.requester;
 
-  const parts = r.purpose.split('：');
-  selectedPurpose = parts[0];
-  document.getElementById('fPurposeDetail').value = parts.slice(1).join('：') || '';
-  renderPurposeChips();
+  document.getElementById('fPurposeDetail').value = r.purpose;
 
   items = r.items.map(it => ({ rid: genRowId(), name: it.name, unit_price: it.unit_price, qty: it.qty }));
   renderItemRows();
@@ -273,8 +248,7 @@ async function submitRequest() {
   const purpose = getPurposeValue();
   if (!expense_date) return toast('請選擇花費日期', true);
   if (!requester) return toast('請填寫請款人', true);
-  if (!selectedPurpose) return toast('請選擇用途', true);
-  if (!document.getElementById('fPurposeDetail').value.trim()) return toast('請輸入名稱', true);
+  if (!purpose) return toast('請輸入用途名稱', true);
   const validItems = items.filter(i => i.name && Number(i.unit_price) >= 0 && Number(i.qty) > 0);
   if (validItems.length === 0) return toast('請至少填寫一項品項', true);
 
@@ -369,7 +343,6 @@ document.getElementById('fDate').value = todayStr();
 document.getElementById('monthFilter').addEventListener('change', loadList);
 addItemRow();
 renderReceiptThumbs();
-renderPurposeChips();
 loadList();
 registerSW();
 </script>
