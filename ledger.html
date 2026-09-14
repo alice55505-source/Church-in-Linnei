@@ -53,8 +53,6 @@
   </div>
 
   <div id="mainContent" class="hidden space-y-5">
-    <div id="reminderBanner" class="hidden space-y-2"></div>
-
     <div class="flex gap-1 overflow-x-auto pb-1">
       <button class="tabbtn active" data-tab="expenses" onclick="switchTab('expenses')">支出記帳</button>
       <button class="tabbtn" data-tab="income" onclick="switchTab('income')">收入總覽</button>
@@ -194,7 +192,6 @@ async function handleGoogleCredential(response) {
 async function doLogout() { await api('/api/auth/logout', { method: 'POST' }); location.reload(); }
 
 async function loadReminderBanner() {
-  const el = document.getElementById('reminderBanner');
   const warnings = [];
   const month = thisMonthStr();
 
@@ -220,9 +217,25 @@ async function loadReminderBanner() {
     if (overdue > 0) warnings.push(`有 ${overdue} 筆請款單已逾兩週未完成入帳，請至「支出記帳」頁處理`);
   } catch (e) {}
 
-  if (warnings.length === 0) { el.classList.add('hidden'); el.innerHTML = ''; return; }
-  el.classList.remove('hidden');
-  el.innerHTML = warnings.map(w => `<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-base font-bold text-amber-700">⚠️ ${w}</div>`).join('');
+  if (warnings.length === 0) return;
+  showReminderModal(warnings);
+}
+// 登入後跳出提醒視窗，按「確定」關閉即可，不佔畫面空間
+function showReminderModal(warnings) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:20px;width:100%;max-width:420px;padding:20px;">
+      <h3 style="font-weight:900;font-size:18px;color:#334155;margin-bottom:12px;">⚠️ 提醒事項</h3>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+        ${warnings.map(w => `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:12px;font-size:16px;font-weight:700;color:#b45309;">${esc(w)}</div>`).join('')}
+      </div>
+      <button data-act="ok" style="width:100%;padding:12px;border-radius:10px;background:#4f46e5;color:#fff;font-weight:800;font-size:16px;border:none;">確定</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => {
+    if (e.target.getAttribute('data-act') === 'ok') overlay.remove();
+  });
 }
 
 function receiptThumbsHTML(receipts) {
