@@ -170,6 +170,8 @@ function removeItemRow(rid) {
 function updateItemRow(rid, field, value) {
   const it = items.find(i => i.rid === rid);
   if (it) it[field] = value;
+  const rowTotalEl = document.getElementById('rowtotal-' + rid);
+  if (it && rowTotalEl) rowTotalEl.textContent = fmtMoney((Number(it.unit_price) || 0) * (Number(it.qty) || 0));
   updateTotal();
 }
 function renderItemRows() {
@@ -193,7 +195,7 @@ function renderItemRows() {
           <input type="number" value="${it.qty}" oninput="updateItemRow('${it.rid}','qty',+this.value)"
             class="w-full px-2 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-base font-black"></div>
         <div><label class="text-[13px] font-bold text-slate-400">總價</label>
-          <div class="w-full px-2 py-1.5 bg-slate-100 rounded-lg text-base font-black text-slate-500">${fmtMoney((Number(it.unit_price)||0)*(Number(it.qty)||0))}</div></div>
+          <div id="rowtotal-${it.rid}" class="w-full px-2 py-1.5 bg-slate-100 rounded-lg text-base font-black text-slate-500">${fmtMoney((Number(it.unit_price)||0)*(Number(it.qty)||0))}</div></div>
       </div>
     </div>
   `).join('');

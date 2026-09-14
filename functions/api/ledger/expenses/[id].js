@@ -12,15 +12,6 @@ export async function onRequestPatch({ request, env, params }) {
   const action = body.action;
 
   // 簽名一旦完成即鎖定，不可重簽或取消，避免財務紀錄被竄改
-  if (action === 'sign_incharge') {
-    if (row.incharge_signature_key) return badRequest('已簽名，無法重簽');
-    const key = await saveDataUrlImage(env, body.signature, 'signatures');
-    if (!key) return badRequest('缺少負責弟兄簽名');
-    await env.DB.prepare('UPDATE ledger_expenses SET incharge_signature_key=?, incharge_signed_at=? WHERE id=?')
-      .bind(key, nowISO(), row.id).run();
-    return json({ ok: true });
-  }
-
   // 請款簽收：由請款人本人簽名確認已收到款項，不是上傳照片
   if (action === 'sign_requester') {
     if (row.requester_signature_key) return badRequest('已簽收，無法重簽');
@@ -41,7 +32,6 @@ export async function onRequestPatch({ request, env, params }) {
 
   if (action === 'finalize') {
     if (!row.requester_signature_key) return badRequest('需先由請款人簽收');
-    if (!row.incharge_signature_key) return badRequest('需先由負責弟兄簽名');
 
     await env.DB.batch([
       env.DB.prepare("UPDATE ledger_expenses SET status='finalized', finalized_at=? WHERE id=?").bind(nowISO(), row.id),

@@ -128,6 +128,11 @@
         </div>
         <div id="printStatus"></div>
       </div>
+      <div class="card p-4 space-y-3">
+        <h2 class="text-base font-black text-slate-400 uppercase tracking-widest">本月報表線上簽名</h2>
+        <p class="text-[14px] text-slate-400 font-bold">出納、會計、負責弟兄在此線上簽名，簽名會直接印在收支表 PDF 上，不用印出來再手簽。</p>
+        <div id="printSignatures" class="flex flex-wrap items-center gap-2"></div>
+      </div>
       <div class="card p-0 overflow-x-auto">
         <div id="printPreview"></div>
       </div>
@@ -307,9 +312,6 @@ async function loadExpenses() {
             ${e.requester_signature_key
               ? `<span class="text-[14px] text-emerald-600 font-bold">請款人已簽收</span>${sigThumb(e.requester_signature_key)}`
               : (e.status === 'finalized' ? '' : `<button onclick="ledgerSignRequester('${e.id}')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">請款人簽收</button>`)}
-            ${e.incharge_signature_key
-              ? `<span class="text-[14px] text-emerald-600 font-bold">負責弟兄已簽名</span>${sigThumb(e.incharge_signature_key)}`
-              : (e.status === 'finalized' ? '' : `<button onclick="ledgerSignIncharge('${e.id}')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">負責弟兄簽名</button>`)}
             ${e.receipt_proof_key
               ? `<span class="text-[14px] text-emerald-600 font-bold">已上傳轉帳截圖</span>${sigThumb(e.receipt_proof_key)}`
               : (e.status === 'finalized' ? '' : `<label class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black cursor-pointer">上傳轉帳截圖（選填）
@@ -322,19 +324,12 @@ async function loadExpenses() {
   } catch (err) { toast(err.message, true); }
 }
 async function bookExpense(id) {
-  const booked_by = prompt('記帳人（選填）') || '';
-  try { await api('/api/ledger/expenses', { method: 'POST', body: { request_id: id, booked_by } }); toast('已建立記帳項目'); loadExpenses(); }
+  try { await api('/api/ledger/expenses', { method: 'POST', body: { request_id: id } }); toast('已建立記帳項目'); loadExpenses(); }
   catch (e) { toast(e.message, true); }
 }
 async function deleteExpenseRequest(id) {
   if (!confirmDelete('確定刪除此筆請款單？已入帳的無法刪除。')) return;
   try { await api('/api/expenses/' + id, { method: 'DELETE' }); toast('已刪除'); loadExpenses(); }
-  catch (e) { toast(e.message, true); }
-}
-async function ledgerSignIncharge(id) {
-  const sig = await askForSignature('負責弟兄簽名');
-  if (!sig) return;
-  try { await api('/api/ledger/expenses/' + id, { method: 'PATCH', body: { action: 'sign_incharge', signature: sig } }); toast('已簽名'); loadExpenses(); }
   catch (e) { toast(e.message, true); }
 }
 async function ledgerSignRequester(id) {
@@ -433,9 +428,6 @@ async function loadRegular() {
               ? `<span class="text-[14px] text-emerald-600 font-bold">已上傳轉帳記錄</span>${sigThumb(it.payment_proof_key)}`
               : (it.status === 'confirmed' ? '' : `<label class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black cursor-pointer">上傳轉帳記錄
                 <input type="file" accept="image/*" class="hidden" onchange="regularAttachProof('${it.id}', this)"></label>`)}
-            ${it.incharge_signature_key
-              ? `<span class="text-[14px] text-emerald-600 font-bold">負責弟兄已簽名</span>${sigThumb(it.incharge_signature_key)}`
-              : (it.status === 'confirmed' ? '' : `<button onclick="regularSignIncharge('${it.id}')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">負責弟兄簽名</button>`)}
             ${it.status !== 'confirmed' ? `<button onclick="regularConfirm('${it.id}')" class="text-[15px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認完成</button>
             <button onclick="regularDelete('${it.id}')" class="text-[15px] bg-rose-50 text-rose-500 px-2 py-1.5 rounded-lg font-black">刪除</button>` : ''}
           </div>
@@ -463,12 +455,6 @@ async function regularAttachProof(id, input) {
     await api('/api/ledger/regular/' + id, { method: 'PATCH', body: { action: 'attach_payment_proof', file_key: key } });
     toast('已上傳'); loadRegular();
   } catch (e) { toast(e.message, true); }
-}
-async function regularSignIncharge(id) {
-  const sig = await askForSignature('負責弟兄簽名');
-  if (!sig) return;
-  try { await api('/api/ledger/regular/' + id, { method: 'PATCH', body: { action: 'sign_incharge', signature: sig } }); toast('已簽名'); loadRegular(); }
-  catch (e) { toast(e.message, true); }
 }
 async function regularConfirm(id) {
   try { await api('/api/ledger/regular/' + id, { method: 'PATCH', body: { action: 'confirm' } }); toast('已確認完成'); loadRegular(); }
@@ -592,8 +578,13 @@ async function loadPrintStatus() {
   const month = document.getElementById('printMonth').value || thisMonthStr();
   document.getElementById('printMonth').value = month;
   try {
-    const data = await api('/api/ledger/summary?month=' + month);
+    const [data, sigRes] = await Promise.all([
+      api('/api/ledger/summary?month=' + month),
+      api('/api/ledger/statement-signatures/' + month)
+    ]);
+    const sig = sigRes.record || {};
     window.__printData = data;
+    window.__printSignatures = sig;
     const c = document.getElementById('printStatus');
     if (!data.ready) {
       const reasons = [];
@@ -606,10 +597,34 @@ async function loadPrintStatus() {
     } else {
       c.innerHTML = `<button onclick="printStatement('${month}')" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-black text-lg">列印收支表（PDF）</button>`;
     }
-    document.getElementById('printPreview').innerHTML = buildStatementHTML(month, data);
+    renderPrintSignatures(month, sig);
+    document.getElementById('printPreview').innerHTML = buildStatementHTML(month, data, sig);
   } catch (e) { toast(e.message, true); }
 }
-function buildStatementHTML(month, data) {
+function renderPrintSignatures(month, sig) {
+  const roles = [['cashier', '出納'], ['accountant', '會計'], ['incharge', '負責弟兄']];
+  document.getElementById('printSignatures').innerHTML = roles.map(([role, label]) => {
+    const key = sig[role + '_signature_key'];
+    return key
+      ? `<span class="text-[14px] text-emerald-600 font-bold flex items-center gap-1">${label}已簽名${sigThumb(key)}</span>`
+      : `<button onclick="signStatement('${month}','${role}')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">${label}簽名</button>`;
+  }).join('');
+}
+async function signStatement(month, role) {
+  const roleLabel = { cashier: '出納', accountant: '會計', incharge: '負責弟兄' }[role];
+  const sig = await askForSignature(roleLabel + '簽名');
+  if (!sig) return;
+  try {
+    await api('/api/ledger/statement-signatures/' + month, { method: 'PATCH', body: { role, signature: sig } });
+    toast('已簽名');
+    loadPrintStatus();
+  } catch (e) { toast(e.message, true); }
+}
+function buildStatementHTML(month, data, sig) {
+  sig = sig || {};
+  const sigLine = (label, key) => key
+    ? `<div>${label}：<img src="${fileUrl(key)}" style="height:36px;vertical-align:middle;"></div>`
+    : `<div>${label}：_____________________</div>`;
   const t = data.totals;
   return `
     <div style="padding:32px;font-family:'Microsoft JhengHei',sans-serif;color:#111;">
@@ -637,9 +652,9 @@ function buildStatementHTML(month, data) {
       </table>
 
       <div style="display:flex;justify-content:space-around;margin-top:60px;font-size:12px;text-align:center;">
-        <div>出納：_____________________</div>
-        <div>會計：_____________________</div>
-        <div>負責弟兄：_____________________</div>
+        ${sigLine('出納', sig.cashier_signature_key)}
+        ${sigLine('會計', sig.accountant_signature_key)}
+        ${sigLine('負責弟兄', sig.incharge_signature_key)}
       </div>
     </div>
   `;
@@ -647,7 +662,7 @@ function buildStatementHTML(month, data) {
 function printStatement(month) {
   const data = window.__printData;
   if (!data || !data.ready) { toast('本月尚未全部結算完成，無法列印', true); return; }
-  document.getElementById('printArea').innerHTML = buildStatementHTML(month, data);
+  document.getElementById('printArea').innerHTML = buildStatementHTML(month, data, window.__printSignatures);
   setTimeout(() => window.print(), 100);
 }
 
