@@ -258,7 +258,7 @@ function renderSessions() {
         ${s.deposit_proof_key
           ? '<span class="text-[14px] text-emerald-600 font-bold flex-1 py-2 text-center">已上傳入帳照片</span>'
           : `<label class="flex-1 bg-slate-100 text-slate-600 py-2 rounded-lg font-black text-base text-center cursor-pointer">上傳入帳照片
-              <input type="file" accept="image/*" capture="environment" class="hidden" onchange="attachDepositProof('${s.id}', this)"></label>`}
+              <input type="file" accept="image/*" class="hidden" onchange="attachDepositProof('${s.id}', this)"></label>`}
         <button ${canArchive ? '' : 'disabled'} onclick="archiveSession('${s.id}')"
           class="flex-1 py-2 rounded-lg font-black text-base ${canArchive ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-300'}">正式歸檔</button>
       </div>` : ''}

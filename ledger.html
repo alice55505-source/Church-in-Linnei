@@ -313,7 +313,7 @@ async function loadExpenses() {
             ${e.receipt_proof_key
               ? `<span class="text-[14px] text-emerald-600 font-bold">已上傳轉帳截圖</span>${sigThumb(e.receipt_proof_key)}`
               : (e.status === 'finalized' ? '' : `<label class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black cursor-pointer">上傳轉帳截圖（選填）
-                <input type="file" accept="image/*" capture="environment" class="hidden" onchange="ledgerAttachReceipt('${e.id}', this)"></label>`)}
+                <input type="file" accept="image/*" class="hidden" onchange="ledgerAttachReceipt('${e.id}', this)"></label>`)}
             ${e.status === 'finalized' ? '' : `<button onclick="ledgerFinalize('${e.id}')" class="text-[15px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認入帳</button>`}
             <button onclick="deleteExpenseRequest('${e.request_id}')" class="text-[15px] text-rose-500 px-2 py-1.5 rounded-lg font-black">刪除</button>
           </div>
@@ -432,7 +432,7 @@ async function loadRegular() {
             ${it.payment_proof_key
               ? `<span class="text-[14px] text-emerald-600 font-bold">已上傳轉帳記錄</span>${sigThumb(it.payment_proof_key)}`
               : (it.status === 'confirmed' ? '' : `<label class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black cursor-pointer">上傳轉帳記錄
-                <input type="file" accept="image/*" capture="environment" class="hidden" onchange="regularAttachProof('${it.id}', this)"></label>`)}
+                <input type="file" accept="image/*" class="hidden" onchange="regularAttachProof('${it.id}', this)"></label>`)}
             ${it.incharge_signature_key
               ? `<span class="text-[14px] text-emerald-600 font-bold">負責弟兄已簽名</span>${sigThumb(it.incharge_signature_key)}`
               : (it.status === 'confirmed' ? '' : `<button onclick="regularSignIncharge('${it.id}')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">負責弟兄簽名</button>`)}
@@ -531,7 +531,7 @@ async function loadRecon() {
           <input type="number" id="bankBalance" placeholder="銀行帳戶實際餘額" class="w-full px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
           <label class="block text-[15px] bg-slate-100 text-slate-600 px-3 py-2 rounded-xl font-black cursor-pointer text-center">
             上傳存簿照片 / 網銀截圖
-            <input type="file" accept="image/*" capture="environment" class="hidden" id="bankFile">
+            <input type="file" accept="image/*" class="hidden" id="bankFile">
           </label>
           <button onclick="submitRecon('${month}')" class="w-full bg-slate-800 text-white py-2.5 rounded-xl font-black text-lg">送出本月對帳</button>
         </div>`;

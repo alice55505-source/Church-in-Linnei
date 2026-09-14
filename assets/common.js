@@ -97,6 +97,15 @@ function makeSignaturePad(canvas) {
   ctx.strokeStyle = '#1e293b';
   let drawing = false, hasDrawn = false, last = null;
 
+  // 畫布底色填白，避免存出透明背景的 PNG，在深色底的預覽視窗變成一片全黑
+  function fillWhite() {
+    ctx.save();
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  }
+  fillWhite();
+
   function pos(e) {
     const rect = canvas.getBoundingClientRect();
     const t = e.touches ? e.touches[0] : e;
@@ -121,13 +130,14 @@ function makeSignaturePad(canvas) {
 
   canvas.addEventListener('mousedown', start);
   canvas.addEventListener('mousemove', move);
-  window.addEventListener('mouseup', end);
+  canvas.addEventListener('mouseup', end);
+  canvas.addEventListener('mouseleave', end);
   canvas.addEventListener('touchstart', start, { passive: false });
   canvas.addEventListener('touchmove', move, { passive: false });
   canvas.addEventListener('touchend', end);
 
   return {
-    clear() { ctx.clearRect(0, 0, canvas.width, canvas.height); hasDrawn = false; },
+    clear() { ctx.clearRect(0, 0, canvas.width, canvas.height); fillWhite(); hasDrawn = false; },
     isEmpty() { return !hasDrawn; },
     getDataURL() { return canvas.toDataURL('image/png'); }
   };
@@ -151,7 +161,7 @@ function openImagePreview(url) {
   if (!url) return;
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px;';
-  overlay.innerHTML = `<img src="${url}" style="max-width:100%;max-height:100%;border-radius:12px;">`;
+  overlay.innerHTML = `<img src="${url}" style="max-width:100%;max-height:100%;border-radius:12px;background:#fff;">`;
   overlay.addEventListener('click', () => overlay.remove());
   document.body.appendChild(overlay);
 }
@@ -186,14 +196,11 @@ function askForSignature(title) {
       __signatureOverlayOpen = false;
       resolve(value);
     }
-    overlay.addEventListener('click', e => {
-      const act = e.target.getAttribute('data-act');
-      if (act === 'clear') pad.clear();
-      if (act === 'cancel') close(null);
-      if (act === 'ok') {
-        if (pad.isEmpty()) { toast('請先簽名', true); return; }
-        close(pad.getDataURL());
-      }
+    overlay.querySelector('[data-act="clear"]').addEventListener('click', () => pad.clear());
+    overlay.querySelector('[data-act="cancel"]').addEventListener('click', () => close(null));
+    overlay.querySelector('[data-act="ok"]').addEventListener('click', () => {
+      if (pad.isEmpty()) { toast('請先簽名', true); return; }
+      close(pad.getDataURL());
     });
   });
 }
