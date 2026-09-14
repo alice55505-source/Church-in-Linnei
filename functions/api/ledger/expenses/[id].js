@@ -22,14 +22,6 @@ export async function onRequestPatch({ request, env, params }) {
     return json({ ok: true });
   }
 
-  // 轉帳截圖為選填佐證，非必要（有簽收簽名即可入帳）
-  if (action === 'attach_receipt') {
-    if (!body.file_key) return badRequest('缺少轉帳截圖');
-    await env.DB.prepare('UPDATE ledger_expenses SET receipt_proof_key=? WHERE id=?')
-      .bind(body.file_key, row.id).run();
-    return json({ ok: true });
-  }
-
   if (action === 'finalize') {
     if (!row.requester_signature_key) return badRequest('需先由請款人簽收');
 

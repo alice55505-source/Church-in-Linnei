@@ -312,10 +312,6 @@ async function loadExpenses() {
             ${e.requester_signature_key
               ? `<span class="text-[14px] text-emerald-600 font-bold">請款人已簽收</span>${sigThumb(e.requester_signature_key)}`
               : (e.status === 'finalized' ? '' : `<button onclick="ledgerSignRequester('${e.id}')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">請款人簽收</button>`)}
-            ${e.receipt_proof_key
-              ? `<span class="text-[14px] text-emerald-600 font-bold">已上傳轉帳截圖</span>${sigThumb(e.receipt_proof_key)}`
-              : (e.status === 'finalized' ? '' : `<label class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black cursor-pointer">上傳轉帳截圖（選填）
-                <input type="file" accept="image/*" class="hidden" onchange="ledgerAttachReceipt('${e.id}', this)"></label>`)}
             ${e.status === 'finalized' ? '' : `<button onclick="ledgerFinalize('${e.id}')" class="text-[15px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認入帳</button>`}
             <button onclick="deleteExpenseRequest('${e.request_id}')" class="text-[15px] text-rose-500 px-2 py-1.5 rounded-lg font-black">刪除</button>
           </div>
@@ -337,16 +333,6 @@ async function ledgerSignRequester(id) {
   if (!sig) return;
   try { await api('/api/ledger/expenses/' + id, { method: 'PATCH', body: { action: 'sign_requester', signature: sig } }); toast('已簽收'); loadExpenses(); }
   catch (e) { toast(e.message, true); }
-}
-async function ledgerAttachReceipt(id, input) {
-  const file = input.files[0];
-  if (!file) return;
-  try {
-    const key = await uploadFile(file);
-    await api('/api/ledger/expenses/' + id, { method: 'PATCH', body: { action: 'attach_receipt', file_key: key } });
-    toast('已上傳');
-    loadExpenses();
-  } catch (e) { toast(e.message, true); }
 }
 async function ledgerFinalize(id) {
   try { await api('/api/ledger/expenses/' + id, { method: 'PATCH', body: { action: 'finalize' } }); toast('已入帳'); loadExpenses(); }
