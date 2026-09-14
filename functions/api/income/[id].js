@@ -47,13 +47,10 @@ export async function onRequestPatch({ request, env, params }) {
     return json({ ok: true });
   }
 
-  // 簽名一旦完成即鎖定，不可重簽或取消，避免財務紀錄被竄改
-  if (action === 'sign_incharge') {
-    if (row.incharge_signature_key) return badRequest('已簽名，無法重簽');
-    const key = await saveDataUrlImage(env, body.signature, 'signatures');
-    if (!key) return badRequest('缺少負責弟兄簽名');
-    await env.DB.prepare('UPDATE income_sessions SET incharge_signature_key=?, incharge_signed_at=? WHERE id=?')
-      .bind(key, nowISO(), row.id).run();
+  if (action === 'attach_deposit_proof') {
+    if (!body.file_key) return badRequest('缺少奉獻款入帳照片');
+    await env.DB.prepare('UPDATE income_sessions SET deposit_proof_key=? WHERE id=?')
+      .bind(body.file_key, row.id).run();
     return json({ ok: true });
   }
 
@@ -69,7 +66,7 @@ export async function onRequestPatch({ request, env, params }) {
   }
 
   if (action === 'archive') {
-    if (!row.incharge_signature_key) return badRequest('需先由負責弟兄簽名');
+    if (!row.deposit_proof_key) return badRequest('需先上傳奉獻款入帳照片');
     const pending = await env.DB.prepare('SELECT COUNT(*) as c FROM personal_offerings WHERE session_id=? AND recipient_signature_key IS NULL')
       .bind(row.id).first();
     if (pending.c > 0) return badRequest('尚有個人奉獻包未經對象簽收');

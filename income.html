@@ -223,7 +223,7 @@ function renderSessions() {
   if (sessions.length === 0) { c.innerHTML = '<p class="text-center text-slate-300 text-lg py-8">尚無紀錄</p>'; return; }
   c.innerHTML = sessions.map(s => {
     const pendingOfferings = s.personal_offerings.filter(o => !o.recipient_signature_key).length;
-    const canArchive = s.incharge_signature_key && pendingOfferings === 0;
+    const canArchive = s.deposit_proof_key && pendingOfferings === 0;
     return `
     <div class="border border-slate-100 rounded-xl p-3 space-y-2">
       <div class="flex items-center justify-between">
@@ -255,9 +255,10 @@ function renderSessions() {
       </div>` : ''}
       ${s.status !== 'archived' ? `
       <div class="flex gap-2 pt-1">
-        ${s.incharge_signature_key
-          ? '<span class="text-[14px] text-emerald-600 font-bold flex-1 py-2 text-center">負責弟兄已簽名</span>'
-          : `<button onclick="signIncharge('${s.id}')" class="flex-1 bg-slate-100 text-slate-600 py-2 rounded-lg font-black text-base">負責弟兄簽名</button>`}
+        ${s.deposit_proof_key
+          ? '<span class="text-[14px] text-emerald-600 font-bold flex-1 py-2 text-center">已上傳入帳照片</span>'
+          : `<label class="flex-1 bg-slate-100 text-slate-600 py-2 rounded-lg font-black text-base text-center cursor-pointer">上傳入帳照片
+              <input type="file" accept="image/*" capture="environment" class="hidden" onchange="attachDepositProof('${s.id}', this)"></label>`}
         <button ${canArchive ? '' : 'disabled'} onclick="archiveSession('${s.id}')"
           class="flex-1 py-2 rounded-lg font-black text-base ${canArchive ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-300'}">正式歸檔</button>
       </div>` : ''}
@@ -265,12 +266,13 @@ function renderSessions() {
   `;}).join('');
 }
 
-async function signIncharge(id) {
-  const sig = await askForSignature('負責弟兄簽名');
-  if (!sig) return;
+async function attachDepositProof(id, input) {
+  const file = input.files[0];
+  if (!file) return;
   try {
-    await api('/api/income/' + id, { method: 'PATCH', body: { action: 'sign_incharge', signature: sig } });
-    toast('已簽名');
+    const key = await uploadFile(file);
+    await api('/api/income/' + id, { method: 'PATCH', body: { action: 'attach_deposit_proof', file_key: key } });
+    toast('已上傳');
     loadSessions();
   } catch (e) { toast(e.message, true); }
 }
