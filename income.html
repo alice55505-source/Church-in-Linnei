@@ -255,10 +255,16 @@ function renderSessions() {
       </div>` : ''}
       ${s.status !== 'archived' ? `
       <div class="flex gap-2 pt-1">
+        ${s.triplicate_form_key
+          ? `<span class="text-[14px] text-emerald-600 font-bold flex-1 py-2 text-center flex items-center justify-center gap-1">已上傳三聯單<img src="${fileUrl(s.triplicate_form_key)}" onclick="openImagePreview('${fileUrl(s.triplicate_form_key)}')" class="h-8 border border-slate-200 rounded bg-white p-0.5 cursor-pointer"></span>`
+          : `<label class="flex-1 bg-slate-100 text-slate-600 py-2 rounded-lg font-black text-base text-center cursor-pointer">拍三聯單
+              <input type="file" accept="image/*" class="hidden" onchange="attachTriplicateForm('${s.id}', this)"></label>`}
         ${s.deposit_proof_key
           ? '<span class="text-[14px] text-emerald-600 font-bold flex-1 py-2 text-center">已上傳入帳照片</span>'
           : `<label class="flex-1 bg-slate-100 text-slate-600 py-2 rounded-lg font-black text-base text-center cursor-pointer">上傳入帳照片
               <input type="file" accept="image/*" class="hidden" onchange="attachDepositProof('${s.id}', this)"></label>`}
+      </div>
+      <div class="flex gap-2 pt-1">
         <button ${canArchive ? '' : 'disabled'} onclick="archiveSession('${s.id}')"
           class="flex-1 py-2 rounded-lg font-black text-base ${canArchive ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-300'}">正式歸檔</button>
       </div>` : ''}
@@ -266,6 +272,16 @@ function renderSessions() {
   `;}).join('');
 }
 
+async function attachTriplicateForm(id, input) {
+  const file = input.files[0];
+  if (!file) return;
+  try {
+    const key = await uploadFile(file);
+    await api('/api/income/' + id, { method: 'PATCH', body: { action: 'attach_triplicate_form', file_key: key } });
+    toast('已上傳');
+    loadSessions();
+  } catch (e) { toast(e.message, true); }
+}
 async function attachDepositProof(id, input) {
   const file = input.files[0];
   if (!file) return;

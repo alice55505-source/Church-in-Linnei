@@ -54,6 +54,13 @@ export async function onRequestPatch({ request, env, params }) {
     return json({ ok: true });
   }
 
+  if (action === 'attach_triplicate_form') {
+    if (!body.file_key) return badRequest('缺少三聯單照片');
+    await env.DB.prepare('UPDATE income_sessions SET triplicate_form_key=? WHERE id=?')
+      .bind(body.file_key, row.id).run();
+    return json({ ok: true });
+  }
+
   if (action === 'sign_offering') {
     if (!body.offering_id) return badRequest('缺少項目編號');
     const off = await env.DB.prepare('SELECT recipient_signature_key FROM personal_offerings WHERE id=? AND session_id=?').bind(body.offering_id, row.id).first();
