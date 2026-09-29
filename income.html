@@ -95,7 +95,9 @@
         <div id="offeringRows" class="space-y-2"></div>
       </div>
 
-      <button onclick="submitSession()" class="w-full bg-emerald-600 text-white py-3.5 rounded-xl font-black text-lg shadow-lg shadow-emerald-100"><span id="submitBtnText">暫存本次紀錄</span></button>
+      <div class="flex justify-end">
+        <button onclick="submitSession()" class="bg-emerald-600 text-white px-5 py-2 rounded-xl font-bold text-base shadow shadow-emerald-100"><span id="submitBtnText">暫存本次紀錄</span></button>
+      </div>
     </div>
 
     <div class="card overflow-hidden">
@@ -238,7 +240,6 @@ async function submitSession() {
   const opener_name = document.getElementById('sOpener').value.trim();
   if (!session_date) return toast('請選擇開箱日期', true);
   if (!opener_name) return toast('請填寫開箱人', true);
-  if (!confirm(editingSessionId ? '確定要更新這筆紀錄嗎？' : '確定要暫存這筆紀錄嗎？')) return;
   const body = {
     session_date,
     opener_name,
