@@ -49,7 +49,10 @@
     <div id="reminderBanner" class="hidden"></div>
 
     <div class="card p-5 space-y-4">
-      <h2 class="text-lg font-black text-slate-400 uppercase tracking-widest">新增開奉獻箱紀錄</h2>
+      <div class="flex items-center justify-between">
+        <h2 id="formTitle" class="text-lg font-black text-slate-400 uppercase tracking-widest">新增開奉獻箱紀錄</h2>
+        <button id="cancelEditBtn" onclick="cancelEditSession()" class="hidden text-[15px] font-bold text-rose-500 px-2 py-1 rounded-lg hover:bg-rose-50">取消編輯</button>
+      </div>
       <div class="grid grid-cols-2 gap-3">
         <div class="space-y-1">
           <label class="text-[14px] font-bold text-slate-400 ml-1">開箱日期</label>
@@ -92,7 +95,7 @@
         <div id="offeringRows" class="space-y-2"></div>
       </div>
 
-      <button onclick="submitSession()" class="w-full bg-emerald-600 text-white py-3.5 rounded-xl font-black text-lg shadow-lg shadow-emerald-100">暫存本次紀錄</button>
+      <button onclick="submitSession()" class="w-full bg-emerald-600 text-white py-3.5 rounded-xl font-black text-lg shadow-lg shadow-emerald-100"><span id="submitBtnText">暫存本次紀錄</span></button>
     </div>
 
     <div class="card overflow-hidden">
@@ -109,6 +112,7 @@
 <script>
 let offerings = [];
 let sessions = [];
+let editingSessionId = null;
 
 function genRowId() { return 'o' + Math.random().toString(36).slice(2, 9); }
 function addOfferingRow() {
@@ -166,6 +170,41 @@ async function doLogout() {
   await api('/api/auth/logout', { method: 'POST' });
   location.reload();
 }
+function resetSessionForm() {
+  editingSessionId = null;
+  document.getElementById('formTitle').textContent = '新增開奉獻箱紀錄';
+  document.getElementById('submitBtnText').textContent = '暫存本次紀錄';
+  document.getElementById('cancelEditBtn').classList.add('hidden');
+  document.getElementById('sOpener').value = '';
+  ['aGeneral','aFulltime','aTaiwan','aOverseas','aOther','otherNote'].forEach(id => document.getElementById(id).value = '');
+  offerings = [];
+  renderOfferingRows();
+}
+function cancelEditSession() {
+  resetSessionForm();
+  document.getElementById('sDate').value = todayStr();
+}
+function editSessionById(id) {
+  const s = sessions.find(x => x.id === id);
+  if (s) editSession(s);
+}
+function editSession(s) {
+  editingSessionId = s.id;
+  document.getElementById('formTitle').textContent = '編輯暫存紀錄';
+  document.getElementById('submitBtnText').textContent = '更新本次紀錄';
+  document.getElementById('cancelEditBtn').classList.remove('hidden');
+  document.getElementById('sDate').value = s.session_date;
+  document.getElementById('sOpener').value = s.opener_name || '';
+  document.getElementById('aGeneral').value = s.amount_general || '';
+  document.getElementById('aFulltime').value = s.amount_fulltime || '';
+  document.getElementById('aTaiwan').value = s.amount_taiwan_gospel || '';
+  document.getElementById('aOverseas').value = s.amount_overseas || '';
+  document.getElementById('aOther').value = s.amount_other || '';
+  document.getElementById('otherNote').value = s.other_note || '';
+  offerings = [];
+  renderOfferingRows();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 async function submitSession() {
   const session_date = document.getElementById('sDate').value;
   const opener_name = document.getElementById('sOpener').value.trim();
@@ -183,12 +222,18 @@ async function submitSession() {
     personal_offerings: offerings.filter(o => o.person_name)
   };
   try {
-    await api('/api/income', { method: 'POST', body });
-    toast('已暫存，待負責弟兄簽名及奉獻對象簽收後歸檔');
-    document.getElementById('sOpener').value = '';
-    ['aGeneral','aFulltime','aTaiwan','aOverseas','aOther','otherNote'].forEach(id => document.getElementById(id).value = '');
-    offerings = [];
-    renderOfferingRows();
+    if (editingSessionId) {
+      await api('/api/income/' + editingSessionId, { method: 'PATCH', body: { action: 'update', ...body } });
+      for (const o of body.personal_offerings) {
+        await api('/api/income/' + editingSessionId, { method: 'PATCH', body: { action: 'add_offering', ...o } });
+      }
+      toast('已更新');
+    } else {
+      await api('/api/income', { method: 'POST', body });
+      toast('已暫存，待上傳入帳照片及奉獻對象簽收後歸檔');
+    }
+    resetSessionForm();
+    document.getElementById('sDate').value = todayStr();
     loadSessions();
   } catch (e) { toast(e.message, true); }
 }
@@ -231,7 +276,10 @@ function renderSessions() {
           <div class="font-black text-lg text-slate-700">${s.session_date}</div>
           <div class="text-[15px] text-slate-400 font-bold">開箱人：${esc(s.opener_name || '')}</div>
         </div>
-        <span class="badge ${s.status === 'archived' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${s.status === 'archived' ? '已歸檔' : '暫存中'}</span>
+        <div class="flex items-center gap-2">
+          <span class="badge ${s.status === 'archived' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${s.status === 'archived' ? '已歸檔' : '暫存中'}</span>
+          ${s.status !== 'archived' ? `<button onclick="editSessionById('${s.id}')" class="text-[14px] font-bold text-indigo-500 px-2 py-1 rounded-lg hover:bg-indigo-50">編輯</button>` : ''}
+        </div>
       </div>
       <div class="grid grid-cols-1 gap-y-1.5 text-[15px] text-slate-500 font-bold">
         <div class="flex justify-between gap-2"><span>召會經常費</span><span>${fmtMoney(s.amount_general)}</span></div>
