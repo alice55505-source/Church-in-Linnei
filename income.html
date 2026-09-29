@@ -96,7 +96,7 @@
       </div>
 
       <div class="flex justify-end">
-        <button onclick="submitSession()" class="bg-emerald-600 text-white px-5 py-2 rounded-xl font-bold text-base shadow shadow-emerald-100"><span id="submitBtnText">暫存本次紀錄</span></button>
+        <button onclick="submitSession()" class="bg-emerald-600 text-white px-5 py-2 rounded-xl font-bold text-base shadow shadow-emerald-100"><span id="submitBtnText">暫存</span></button>
       </div>
     </div>
 
@@ -195,7 +195,7 @@ async function doLogout() {
 function resetSessionForm() {
   editingSessionId = null;
   document.getElementById('formTitle').textContent = '新增開奉獻箱紀錄';
-  document.getElementById('submitBtnText').textContent = '暫存本次紀錄';
+  document.getElementById('submitBtnText').textContent = '暫存';
   document.getElementById('cancelEditBtn').classList.add('hidden');
   document.getElementById('sOpener').value = '';
   ['aGeneral','aFulltime','aTaiwan','aOverseas','aOther','otherNote'].forEach(id => document.getElementById(id).value = '');
@@ -218,7 +218,7 @@ function editSessionById(id) {
 function editSession(s) {
   editingSessionId = s.id;
   document.getElementById('formTitle').textContent = '編輯暫存紀錄';
-  document.getElementById('submitBtnText').textContent = '更新本次紀錄';
+  document.getElementById('submitBtnText').textContent = '更新';
   document.getElementById('cancelEditBtn').classList.remove('hidden');
   document.getElementById('sDate').value = s.session_date;
   document.getElementById('sOpener').value = s.opener_name || '';
