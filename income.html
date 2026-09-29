@@ -119,8 +119,17 @@ function addOfferingRow() {
   offerings.push({ rid: genRowId(), church_name: '', person_name: '', bag_count: 1 });
   renderOfferingRows();
 }
-function removeOfferingRow(rid) {
-  offerings = offerings.filter(o => o.rid !== rid);
+// 已存在的項目（有 id）點 ✕ 會立刻呼叫後端刪除；已簽收的不給刪。新項目（無 id）只是移除畫面上的列，存檔時才送出。
+async function removeOfferingRow(rid) {
+  const o = offerings.find(x => x.rid === rid);
+  if (!o) return;
+  if (o.id) {
+    if (!confirmDelete('確定移除此個人奉獻項目？')) return;
+    try {
+      await api('/api/income/' + editingSessionId, { method: 'PATCH', body: { action: 'remove_offering', offering_id: o.id } });
+    } catch (e) { toast(e.message, true); return; }
+  }
+  offerings = offerings.filter(x => x.rid !== rid);
   renderOfferingRows();
 }
 function updateOfferingRow(rid, field, value) {
@@ -130,7 +139,18 @@ function updateOfferingRow(rid, field, value) {
 function renderOfferingRows() {
   const c = document.getElementById('offeringRows');
   if (offerings.length === 0) { c.innerHTML = '<p class="text-base text-slate-300 text-center py-2">無個人奉獻項目</p>'; return; }
-  c.innerHTML = offerings.map(o => `
+  c.innerHTML = offerings.map(o => {
+    if (o.id) {
+      // 已存在的項目：僅顯示，簽收前可移除，簽收後鎖定不可移除
+      return `
+      <div class="flex items-center justify-between gap-2 bg-slate-50 border border-slate-100 rounded-xl p-2">
+        <span class="text-base font-bold text-slate-600">${esc(o.church_name)} ${esc(o.person_name)} × ${o.bag_count}包</span>
+        ${o.signed
+          ? '<span class="text-[14px] text-emerald-600 font-bold">已簽收</span>'
+          : `<button onclick="removeOfferingRow('${o.rid}')" class="text-slate-300 hover:text-rose-500 px-1">✕</button>`}
+      </div>`;
+    }
+    return `
     <div class="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-xl p-2">
       <input type="text" placeholder="召會" value="${esc(o.church_name)}" oninput="updateOfferingRow('${o.rid}','church_name',this.value)"
         class="w-20 px-2 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-base font-bold">
@@ -139,8 +159,8 @@ function renderOfferingRows() {
       <input type="number" placeholder="幾包" value="${o.bag_count}" oninput="updateOfferingRow('${o.rid}','bag_count',+this.value)"
         class="w-16 px-2 py-1.5 bg-white border border-slate-100 rounded-lg outline-none text-base font-black">
       <button onclick="removeOfferingRow('${o.rid}')" class="text-slate-300 hover:text-rose-500 px-1">✕</button>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 async function checkLogin() {
@@ -206,7 +226,10 @@ function editSession(s) {
   document.getElementById('aOverseas').value = s.amount_overseas || '';
   document.getElementById('aOther').value = s.amount_other || '';
   document.getElementById('otherNote').value = s.other_note || '';
-  offerings = [];
+  offerings = (s.personal_offerings || []).map(o => ({
+    rid: genRowId(), id: o.id, church_name: o.church_name, person_name: o.person_name,
+    bag_count: o.bag_count, signed: !!o.recipient_signature_key
+  }));
   renderOfferingRows();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -224,7 +247,7 @@ async function submitSession() {
     amount_overseas: document.getElementById('aOverseas').value,
     amount_other: document.getElementById('aOther').value,
     other_note: document.getElementById('otherNote').value,
-    personal_offerings: offerings.filter(o => o.person_name)
+    personal_offerings: offerings.filter(o => !o.id && o.person_name)
   };
   try {
     if (editingSessionId) {
@@ -283,8 +306,8 @@ function renderSessions() {
         </div>
         <div class="flex items-center gap-2">
           <span class="badge ${s.status === 'archived' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${s.status === 'archived' ? '已歸檔' : '暫存中'}</span>
-          ${s.status !== 'archived' ? `<button onclick="editSessionById('${s.id}')" class="text-[14px] font-bold text-indigo-500 px-2 py-1 rounded-lg hover:bg-indigo-50">編輯</button>
-          <button onclick="deleteSession('${s.id}')" class="text-[14px] font-bold text-rose-500 px-2 py-1 rounded-lg hover:bg-rose-50">刪除</button>` : ''}
+          ${s.status !== 'archived' ? `<button onclick="deleteSession('${s.id}')" class="text-[14px] font-bold text-rose-500 px-2 py-1 rounded-lg hover:bg-rose-50">刪除</button>
+          <button onclick="editSessionById('${s.id}')" class="text-[14px] font-bold text-indigo-500 px-2 py-1 rounded-lg hover:bg-indigo-50">編輯</button>` : ''}
         </div>
       </div>
       <div class="grid grid-cols-1 gap-y-1.5 text-[15px] text-slate-500 font-bold">
