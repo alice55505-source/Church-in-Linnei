@@ -156,14 +156,75 @@ function fileUrl(key) {
   return key ? '/api/files/' + key : '';
 }
 
-// 點圖片放大預覽用；點任意處關閉
+// 點圖片放大預覽；支援雙指縮放、拖曳移動、雙擊放大，右上角 ✕ 關閉
+// （頁面本身關閉了 user-scalable 避免誤縮放整頁，所以這裡要自己做手指縮放）
 function openImagePreview(url) {
   if (!url) return;
   const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px;';
-  overlay.innerHTML = `<img src="${url}" style="max-width:100%;max-height:100%;border-radius:12px;background:#fff;">`;
-  overlay.addEventListener('click', () => overlay.remove());
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px;overflow:hidden;touch-action:none;';
+  overlay.innerHTML = `
+    <img src="${url}" style="max-width:100%;max-height:100%;border-radius:12px;background:#fff;touch-action:none;user-select:none;-webkit-user-drag:none;">
+    <button data-act="close" style="position:fixed;top:16px;right:16px;width:40px;height:40px;border-radius:999px;background:rgba(255,255,255,.9);color:#334155;font-weight:900;font-size:20px;border:none;">✕</button>
+  `;
   document.body.appendChild(overlay);
+  const img = overlay.querySelector('img');
+
+  let scale = 1, originX = 0, originY = 0;
+  let startDist = 0, startScale = 1;
+  let dragging = false, lastX = 0, lastY = 0, moved = false;
+  let lastTapAt = 0;
+
+  function setTransform() {
+    img.style.transform = `translate(${originX}px, ${originY}px) scale(${scale})`;
+  }
+  function resetZoom() { scale = 1; originX = 0; originY = 0; setTransform(); }
+  function dist(touches) {
+    return Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+  }
+
+  img.addEventListener('touchstart', e => {
+    moved = false;
+    if (e.touches.length === 2) {
+      startDist = dist(e.touches);
+      startScale = scale;
+    } else if (e.touches.length === 1) {
+      dragging = true;
+      lastX = e.touches[0].clientX;
+      lastY = e.touches[0].clientY;
+    }
+  }, { passive: false });
+
+  img.addEventListener('touchmove', e => {
+    e.preventDefault();
+    moved = true;
+    if (e.touches.length === 2) {
+      scale = Math.min(Math.max(startScale * (dist(e.touches) / startDist), 1), 5);
+      setTransform();
+    } else if (e.touches.length === 1 && dragging && scale > 1) {
+      originX += e.touches[0].clientX - lastX;
+      originY += e.touches[0].clientY - lastY;
+      lastX = e.touches[0].clientX;
+      lastY = e.touches[0].clientY;
+      setTransform();
+    }
+  }, { passive: false });
+
+  img.addEventListener('touchend', e => {
+    dragging = false;
+    if (e.touches.length > 0 || moved) return;
+    const now = Date.now();
+    if (now - lastTapAt < 300) {
+      scale > 1 ? resetZoom() : (scale = 2, setTransform());
+      lastTapAt = 0;
+    } else {
+      lastTapAt = now;
+    }
+  });
+
+  overlay.addEventListener('click', e => {
+    const act = e.target.getAttribute('data-act');
+    if (act === 'close' || (e.target === overlay && scale <= 1)) overlay.remove();
+  });
 }
 
 // 簡易簽名對話框；resolve(dataURL) 或使用者取消則 resolve(null)

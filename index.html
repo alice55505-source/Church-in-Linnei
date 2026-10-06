@@ -79,6 +79,11 @@
       <div id="receiptThumbs" class="flex flex-wrap gap-2"></div>
     </div>
 
+    <label class="flex items-center gap-2 px-1 cursor-pointer">
+      <input type="checkbox" id="fFeeCheckbox" checked onchange="updateTotal()" class="w-5 h-5 accent-indigo-600">
+      <span class="text-base font-bold text-slate-500">包含轉帳手續費（NT$ <span id="feeAmountLabel">15</span>）</span>
+    </label>
+
     <div class="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 flex items-center justify-between">
       <span class="text-base font-bold text-indigo-400">總金額</span>
       <span id="totalPreview" class="text-2xl font-black text-indigo-700">NT$ 0</span>
@@ -201,9 +206,13 @@ function renderItemRows() {
   `).join('');
   updateTotal();
 }
+const FEE_AMOUNT = 15;
+function getFeeAmount() {
+  return document.getElementById('fFeeCheckbox').checked ? FEE_AMOUNT : 0;
+}
 function updateTotal() {
-  const total = items.reduce((s, i) => s + (Number(i.unit_price) || 0) * (Number(i.qty) || 0), 0);
-  document.getElementById('totalPreview').textContent = fmtMoney(total);
+  const itemsTotal = items.reduce((s, i) => s + (Number(i.unit_price) || 0) * (Number(i.qty) || 0), 0);
+  document.getElementById('totalPreview').textContent = fmtMoney(itemsTotal + getFeeAmount());
 }
 
 function resetForm() {
@@ -213,6 +222,7 @@ function resetForm() {
   document.getElementById('cancelEditBtn').classList.add('hidden');
   document.getElementById('fRequester').value = '';
   document.getElementById('fPurposeDetail').value = '';
+  document.getElementById('fFeeCheckbox').checked = true;
   items = [];
   receiptKeys = [];
   addItemRow();
@@ -234,6 +244,7 @@ function editRequest(r) {
   document.getElementById('fRequester').value = r.requester;
 
   document.getElementById('fPurposeDetail').value = r.purpose;
+  document.getElementById('fFeeCheckbox').checked = Number(r.fee_amount) > 0;
 
   items = r.items.map(it => ({ rid: genRowId(), name: it.name, unit_price: it.unit_price, qty: it.qty }));
   renderItemRows();
@@ -254,7 +265,7 @@ async function submitRequest() {
   const validItems = items.filter(i => i.name && Number(i.unit_price) >= 0 && Number(i.qty) > 0);
   if (validItems.length === 0) return toast('請至少填寫一項品項', true);
 
-  const body = { expense_date, requester, purpose, items: validItems, receipt_keys: receiptKeys };
+  const body = { expense_date, requester, purpose, items: validItems, receipt_keys: receiptKeys, fee_amount: getFeeAmount() };
   try {
     if (editingId) {
       await api('/api/expenses/' + editingId, { method: 'PATCH', body });
@@ -310,6 +321,7 @@ async function loadList() {
         </div>
         <div class="mt-2 flex flex-wrap gap-1">
           ${r.items.map(it => `<span class="text-[14px] bg-slate-50 border border-slate-100 rounded-lg px-2 py-1 text-slate-500 font-bold">${esc(it.name)} ×${it.qty} = ${fmtMoney(it.total)}</span>`).join('')}
+          ${r.fee_amount ? `<span class="text-[14px] bg-slate-50 border border-slate-100 rounded-lg px-2 py-1 text-slate-500 font-bold">手續費 = ${fmtMoney(r.fee_amount)}</span>` : ''}
         </div>
         ${r.receipts && r.receipts.length ? `<div class="mt-2 flex flex-wrap gap-2">${r.receipts.map(rc => receiptThumbHTML(rc.file_key, false)).join('')}</div>` : ''}
         <div class="mt-2 flex items-center justify-between">

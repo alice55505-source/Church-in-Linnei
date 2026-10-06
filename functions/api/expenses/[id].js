@@ -32,6 +32,8 @@ export async function onRequestPatch({ request, env, params }) {
     total += t;
     return { id: uid(), name: String(it.name || '').slice(0, 200), unit_price, qty, total: t };
   });
+  const fee_amount = Number(body.fee_amount) || 0;
+  total += fee_amount;
 
   const safeReceiptKeys = Array.isArray(receipt_keys)
     ? receipt_keys.filter(k => typeof k === 'string' && /^receipts\/[A-Za-z0-9._-]+$/.test(k)).slice(0, 10)
@@ -39,8 +41,8 @@ export async function onRequestPatch({ request, env, params }) {
   const now = nowISO();
 
   const stmts = [
-    env.DB.prepare('UPDATE expense_requests SET expense_date=?, purpose=?, requester=?, total_amount=? WHERE id=?')
-      .bind(expense_date, String(purpose).slice(0, 500), String(requester).slice(0, 100), total, row.id),
+    env.DB.prepare('UPDATE expense_requests SET expense_date=?, purpose=?, requester=?, total_amount=?, fee_amount=? WHERE id=?')
+      .bind(expense_date, String(purpose).slice(0, 500), String(requester).slice(0, 100), total, fee_amount, row.id),
     env.DB.prepare('DELETE FROM expense_items WHERE request_id=?').bind(row.id),
     ...itemRows.map(it =>
       env.DB.prepare('INSERT INTO expense_items (id, request_id, name, unit_price, qty, total) VALUES (?,?,?,?,?,?)')
