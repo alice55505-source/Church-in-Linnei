@@ -526,7 +526,7 @@ async function loadRecon() {
       <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 text-base font-bold text-slate-600 space-y-1 mb-3">
         <div class="text-[14px] text-slate-400 uppercase tracking-widest mb-1">本月項目對帳（會計核對用）</div>
         <div class="flex justify-between"><span>本月奉獻（收入）</span><span>${fmtMoney(summary.totals.totalIncome)}</span></div>
-        <div class="flex justify-between"><span>本月支出（含召會支出）</span><span>${fmtMoney(summary.totals.totalExpense)}</span></div>
+        <div class="flex justify-between"><span>本月支出（含召會支出、手續費）</span><span>${fmtMoney(summary.totals.totalExpense)}</span></div>
         <div class="flex justify-between text-[14px] ${summary.reasons.allExpensesSettled ? 'text-emerald-600' : 'text-rose-500'}">
           <span>支出記帳進度</span><span>${summary.reasons.allExpensesSettled ? '已全部入帳' : '尚未全部入帳，請至「支出記帳」處理'}</span>
         </div>
@@ -661,8 +661,8 @@ function buildStatementHTML(month, data, sig) {
       <h2 style="font-size:14px;font-weight:900;border-bottom:1px solid #333;padding-bottom:4px;margin-top:16px;">支出明細</h2>
       <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;">
         <tr style="background:#eee;"><th style="border:1px solid #ccc;padding:4px;">日期</th><th style="border:1px solid #ccc;padding:4px;">用途</th><th style="border:1px solid #ccc;padding:4px;">請款人</th><th style="border:1px solid #ccc;padding:4px;">金額</th></tr>
-        ${data.expenses.map(e => `<tr><td style="border:1px solid #ccc;padding:4px;">${e.expense_date}</td><td style="border:1px solid #ccc;padding:4px;">${esc(e.purpose)}</td><td style="border:1px solid #ccc;padding:4px;">${esc(e.requester)}</td><td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(e.total_amount)}</td></tr>`).join('')}
-        ${data.regular.filter(r=>r.status==='confirmed').map(r => `<tr><td style="border:1px solid #ccc;padding:4px;">${month}</td><td style="border:1px solid #ccc;padding:4px;">${esc(r.name)}（召會支出）</td><td style="border:1px solid #ccc;padding:4px;">-</td><td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(r.amount)}</td></tr>`).join('')}
+        ${data.expenses.map(e => `<tr><td style="border:1px solid #ccc;padding:4px;">${e.expense_date}</td><td style="border:1px solid #ccc;padding:4px;">${esc(e.purpose)}</td><td style="border:1px solid #ccc;padding:4px;">${esc(e.requester)}</td><td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(e.total_amount)}</td></tr>${e.fee_amount ? `<tr><td style="border:1px solid #ccc;padding:4px;">${e.expense_date}</td><td style="border:1px solid #ccc;padding:4px;">${esc(e.purpose)}－轉帳手續費</td><td style="border:1px solid #ccc;padding:4px;">-</td><td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(e.fee_amount)}</td></tr>` : ''}`).join('')}
+        ${data.regular.filter(r=>r.status==='confirmed').map(r => `<tr><td style="border:1px solid #ccc;padding:4px;">${month}</td><td style="border:1px solid #ccc;padding:4px;">${esc(r.name)}（召會支出）</td><td style="border:1px solid #ccc;padding:4px;">-</td><td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(r.amount)}</td></tr>${r.fee_amount ? `<tr><td style="border:1px solid #ccc;padding:4px;">${month}</td><td style="border:1px solid #ccc;padding:4px;">${esc(r.name)}－轉帳手續費</td><td style="border:1px solid #ccc;padding:4px;">-</td><td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(r.fee_amount)}</td></tr>` : ''}`).join('')}
       </table>
 
       <h2 style="font-size:14px;font-weight:900;border-bottom:1px solid #333;padding-bottom:4px;margin-top:20px;">收入明細</h2>

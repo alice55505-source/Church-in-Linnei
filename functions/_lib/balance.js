@@ -1,4 +1,4 @@
-// Cumulative balance = 期初餘額（手動填一次，系統上線前既有結餘） + 已歸檔奉獻收入 − 已入帳支出 − 已確認經常費支出。
+// Cumulative balance = 期初餘額（手動填一次，系統上線前既有結餘） + 已歸檔奉獻收入 − 已入帳支出 − 已確認經常費支出（皆含轉帳手續費）。
 // 期初餘額只需填一次，之後每個月都會自動累加在內，不用每月重填。
 export async function computeCumulativeBalance(env, throughMonth) {
   const endBound = throughMonth + '-31';
@@ -12,13 +12,13 @@ export async function computeCumulativeBalance(env, throughMonth) {
   ).bind(endBound).first();
 
   const expenseRow = await env.DB.prepare(
-    `SELECT COALESCE(SUM(er.total_amount),0) as total
+    `SELECT COALESCE(SUM(er.total_amount + COALESCE(le.fee_amount,0)),0) as total
      FROM ledger_expenses le JOIN expense_requests er ON er.id = le.request_id
      WHERE le.status='finalized' AND er.expense_date <= ?`
   ).bind(endBound).first();
 
   const regularRow = await env.DB.prepare(
-    `SELECT COALESCE(SUM(amount),0) as total FROM regular_expense_items WHERE status='confirmed' AND month <= ?`
+    `SELECT COALESCE(SUM(amount + COALESCE(fee_amount,0)),0) as total FROM regular_expense_items WHERE status='confirmed' AND month <= ?`
   ).bind(throughMonth).first();
 
   return openingBalance + (incomeRow.total || 0) - (expenseRow.total || 0) - (regularRow.total || 0);
