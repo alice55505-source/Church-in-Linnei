@@ -650,6 +650,7 @@ async function saveStatementPdf(month) {
   holder.style.cssText = 'position:absolute;left:-10000px;top:0;width:794px;background:#fff;';
   holder.innerHTML = buildStatementHTML(month, data);
   document.body.appendChild(holder);
+  let waitingTap = false;
   try {
     await loadHtml2Pdf();
     const filename = `林內鄉召會收支表_${month}.pdf`;
@@ -664,7 +665,16 @@ async function saveStatementPdf(month) {
     const file = new File([blob], filename, { type: 'application/pdf' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try { await navigator.share({ files: [file], title: filename }); }
-      catch (e) { if (e.name !== 'AbortError') throw e; }
+      catch (e) {
+        // 產生 PDF 花太久，手機會擋下分享視窗；改成再點一次按鈕分享
+        if (e.name === 'NotAllowedError' && btn) {
+          waitingTap = true;
+          btn.textContent = 'PDF 已產生，點此分享';
+          btn.onclick = () => navigator.share({ files: [file], title: filename }).catch(() => {});
+          return;
+        }
+        if (e.name !== 'AbortError') throw e;
+      }
     } else {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -677,7 +687,7 @@ async function saveStatementPdf(month) {
     toast(e.message || '產生 PDF 失敗', true);
   } finally {
     holder.remove();
-    if (btn) { btn.disabled = false; btn.textContent = '分享收支表 PDF'; }
+    if (btn) { btn.disabled = false; if (!waitingTap) btn.textContent = '分享收支表 PDF'; }
   }
 }
 
