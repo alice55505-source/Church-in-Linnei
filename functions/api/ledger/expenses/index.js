@@ -4,6 +4,8 @@ import { uid, nowISO, json, badRequest, unauthorized } from '../../../_lib/db.js
 export async function onRequestGet({ request, env }) {
   const session = await requireTier(request, env, 'ledger');
   if (!session) return unauthorized();
+  const url = new URL(request.url);
+  const month = url.searchParams.get('month') || nowISO().slice(0, 7);
 
   const unbooked = await env.DB.prepare(
     `SELECT * FROM expense_requests WHERE status='submitted' ORDER BY expense_date DESC, created_at DESC`
@@ -15,17 +17,28 @@ export async function onRequestGet({ request, env }) {
     r.receipts = receipts.results;
   }
 
-  const { results: booked } = await env.DB.prepare(`
+  // 記帳中（尚未入帳）：不分月份，全部顯示，避免漏掉待處理項目
+  const { results: pending } = await env.DB.prepare(`
     SELECT le.*, er.expense_date, er.purpose, er.requester, er.request_date, er.total_amount, er.created_at as request_created_at
     FROM ledger_expenses le JOIN expense_requests er ON er.id = le.request_id
+    WHERE le.status != 'finalized'
     ORDER BY er.expense_date DESC, le.booked_at DESC
   `).all();
-  for (const e of booked) {
+
+  // 已入帳：依花費日期所屬月份篩選
+  const { results: finalized } = await env.DB.prepare(`
+    SELECT le.*, er.expense_date, er.purpose, er.requester, er.request_date, er.total_amount, er.created_at as request_created_at
+    FROM ledger_expenses le JOIN expense_requests er ON er.id = le.request_id
+    WHERE le.status = 'finalized' AND er.expense_date LIKE ?
+    ORDER BY er.expense_date DESC, le.booked_at DESC
+  `).bind(month + '%').all();
+
+  for (const e of [...pending, ...finalized]) {
     const receipts = await env.DB.prepare('SELECT * FROM expense_request_receipts WHERE request_id=? ORDER BY created_at').bind(e.request_id).all();
     e.receipts = receipts.results;
   }
 
-  return json({ unbooked: unbooked.results, entries: booked });
+  return json({ unbooked: unbooked.results, entries: pending, finalized, month });
 }
 
 export async function onRequestPost({ request, env }) {

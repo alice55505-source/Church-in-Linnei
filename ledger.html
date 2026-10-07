@@ -68,8 +68,15 @@
         <div id="unbookedList" class="space-y-2"></div>
       </div>
       <div class="card p-4">
-        <h2 class="text-base font-black text-slate-400 uppercase tracking-widest mb-2">記帳中 / 已入帳</h2>
+        <h2 class="text-base font-black text-slate-400 uppercase tracking-widest mb-2">記帳中（尚未入帳）</h2>
         <div id="ledgerExpList" class="space-y-2"></div>
+      </div>
+      <div class="card p-4">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-base font-black text-slate-400 uppercase tracking-widest">已入帳</h2>
+          <input type="month" id="finalizedMonth" class="text-base font-bold px-2 py-1.5 bg-slate-50 border border-slate-100 rounded-lg outline-none">
+        </div>
+        <div id="finalizedExpList" class="space-y-2"></div>
       </div>
     </div>
 
@@ -281,9 +288,36 @@ async function patchWithOverride(url, body) {
 }
 
 /* ===== 支出記帳 ===== */
+function expenseEntryHTML(e) {
+  return `
+    <div class="border border-slate-100 rounded-xl p-3 space-y-2">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="font-bold text-lg text-slate-700">${esc(e.purpose)}</div>
+          <div class="text-[15px] text-slate-400 font-medium">${e.expense_date} ・ ${esc(e.requester)} ・ 品項 ${fmtMoney(e.total_amount)}${e.fee_amount ? ` ＋ 手續費 ${fmtMoney(e.fee_amount)} ＝ 應付 ${fmtMoney(e.total_amount + e.fee_amount)}` : ''}</div>
+        </div>
+        <span class="badge ${e.status === 'finalized' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${e.status === 'finalized' ? '已入帳' : '記帳中'}</span>
+      </div>
+      ${receiptThumbsHTML(e.receipts)}
+      <label class="flex items-center gap-2 text-[14px] font-bold text-slate-500 ${e.status === 'finalized' ? 'opacity-60' : 'cursor-pointer'}">
+        <input type="checkbox" ${e.fee_amount ? 'checked' : ''} ${e.status === 'finalized' ? 'disabled' : ''} onchange="toggleExpenseFee('${e.id}', this.checked)" class="w-4 h-4 accent-indigo-600">
+        含轉帳手續費（NT$15）
+      </label>
+      <div class="flex flex-wrap items-center gap-2">
+        ${e.requester_signature_key
+          ? `<span class="text-[14px] text-emerald-600 font-bold">請款人已簽收</span>${sigThumb(e.requester_signature_key)}`
+          : (e.status === 'finalized' ? '' : `<button onclick="ledgerSignRequester('${e.id}')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">請款人簽收</button>`)}
+        ${e.status === 'finalized' ? '' : `<button onclick="ledgerFinalize('${e.id}')" class="text-[15px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認入帳</button>`}
+        <button onclick="deleteExpenseRequest('${e.request_id}')" class="text-[15px] text-rose-500 px-2 py-1.5 rounded-lg font-black">刪除</button>
+      </div>
+    </div>
+  `;
+}
 async function loadExpenses() {
+  const month = document.getElementById('finalizedMonth').value || thisMonthStr();
+  document.getElementById('finalizedMonth').value = month;
   try {
-    const data = await api('/api/ledger/expenses');
+    const data = await api('/api/ledger/expenses?month=' + month);
     const u = document.getElementById('unbookedList');
     u.innerHTML = data.unbooked.length === 0 ? '<p class="text-base text-slate-300 text-center py-3">無待記帳項目</p>' :
       data.unbooked.map(r => `
@@ -304,29 +338,11 @@ async function loadExpenses() {
 
     const l = document.getElementById('ledgerExpList');
     l.innerHTML = data.entries.length === 0 ? '<p class="text-base text-slate-300 text-center py-3">尚無紀錄</p>' :
-      data.entries.map(e => `
-        <div class="border border-slate-100 rounded-xl p-3 space-y-2">
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="font-bold text-lg text-slate-700">${esc(e.purpose)}</div>
-              <div class="text-[15px] text-slate-400 font-medium">${e.expense_date} ・ ${esc(e.requester)} ・ 品項 ${fmtMoney(e.total_amount)}${e.fee_amount ? ` ＋ 手續費 ${fmtMoney(e.fee_amount)} ＝ 應付 ${fmtMoney(e.total_amount + e.fee_amount)}` : ''}</div>
-            </div>
-            <span class="badge ${e.status === 'finalized' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${e.status === 'finalized' ? '已入帳' : '記帳中'}</span>
-          </div>
-          ${receiptThumbsHTML(e.receipts)}
-          <label class="flex items-center gap-2 text-[14px] font-bold text-slate-500 ${e.status === 'finalized' ? 'opacity-60' : 'cursor-pointer'}">
-            <input type="checkbox" ${e.fee_amount ? 'checked' : ''} ${e.status === 'finalized' ? 'disabled' : ''} onchange="toggleExpenseFee('${e.id}', this.checked)" class="w-4 h-4 accent-indigo-600">
-            含轉帳手續費（NT$15）
-          </label>
-          <div class="flex flex-wrap items-center gap-2">
-            ${e.requester_signature_key
-              ? `<span class="text-[14px] text-emerald-600 font-bold">請款人已簽收</span>${sigThumb(e.requester_signature_key)}`
-              : (e.status === 'finalized' ? '' : `<button onclick="ledgerSignRequester('${e.id}')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">請款人簽收</button>`)}
-            ${e.status === 'finalized' ? '' : `<button onclick="ledgerFinalize('${e.id}')" class="text-[15px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認入帳</button>`}
-            <button onclick="deleteExpenseRequest('${e.request_id}')" class="text-[15px] text-rose-500 px-2 py-1.5 rounded-lg font-black">刪除</button>
-          </div>
-        </div>
-      `).join('');
+      data.entries.map(expenseEntryHTML).join('');
+
+    const f = document.getElementById('finalizedExpList');
+    f.innerHTML = data.finalized.length === 0 ? '<p class="text-base text-slate-300 text-center py-3">本月尚無已入帳紀錄</p>' :
+      data.finalized.map(expenseEntryHTML).join('');
   } catch (err) { toast(err.message, true); }
 }
 async function bookExpense(id) {
@@ -669,9 +685,11 @@ function printStatement(month) {
   setTimeout(() => window.print(), 100);
 }
 
+document.getElementById('finalizedMonth').value = thisMonthStr();
 document.getElementById('regularMonth').value = thisMonthStr();
 document.getElementById('reconMonth').value = thisMonthStr();
 document.getElementById('printMonth').value = thisMonthStr();
+document.getElementById('finalizedMonth').addEventListener('change', loadExpenses);
 document.getElementById('regularMonth').addEventListener('change', loadRegular);
 document.getElementById('reconMonth').addEventListener('change', loadRecon);
 document.getElementById('printMonth').addEventListener('change', loadPrintStatus);
