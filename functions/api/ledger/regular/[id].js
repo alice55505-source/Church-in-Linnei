@@ -42,9 +42,14 @@ export async function onRequestDelete({ request, env, params }) {
   const row = await env.DB.prepare('SELECT * FROM regular_expense_items WHERE id=?').bind(params.id).first();
   if (!row) return json({ error: '找不到' }, 404);
   if (row.status === 'confirmed') return badRequest('已確認完成，無法刪除');
-  await env.DB.batch([
-    env.DB.prepare(`DELETE FROM regular_expense_items WHERE name=? AND month>=? AND status!='confirmed'`).bind(row.name, row.month),
-    env.DB.prepare(`UPDATE regular_expense_items SET active=0 WHERE name=?`).bind(row.name)
-  ]);
+  try {
+    await env.DB.batch([
+      env.DB.prepare(`DELETE FROM regular_expense_items WHERE name=? AND month>=? AND status!='confirmed'`).bind(row.name, row.month),
+      env.DB.prepare(`UPDATE regular_expense_items SET active=0 WHERE name=?`).bind(row.name)
+    ]);
+  } catch (e) {
+    // 資料庫尚未套用 active 欄位的遷移時，退回只刪除、不標記停止延續
+    await env.DB.prepare(`DELETE FROM regular_expense_items WHERE name=? AND month>=? AND status!='confirmed'`).bind(row.name, row.month).run();
+  }
   return json({ ok: true });
 }

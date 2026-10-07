@@ -40,9 +40,7 @@ export async function onRequestPatch({ request, env, params }) {
     : [];
   const now = nowISO();
 
-  const stmts = [
-    env.DB.prepare('UPDATE expense_requests SET expense_date=?, purpose=?, requester=?, total_amount=?, fee_amount=? WHERE id=?')
-      .bind(expense_date, String(purpose).slice(0, 500), String(requester).slice(0, 100), total, fee_amount, row.id),
+  const itemStmts = [
     env.DB.prepare('DELETE FROM expense_items WHERE request_id=?').bind(row.id),
     ...itemRows.map(it =>
       env.DB.prepare('INSERT INTO expense_items (id, request_id, name, unit_price, qty, total) VALUES (?,?,?,?,?,?)')
@@ -54,7 +52,20 @@ export async function onRequestPatch({ request, env, params }) {
         .bind(uid(), row.id, key, now)
     )
   ];
-  await env.DB.batch(stmts);
+  try {
+    await env.DB.batch([
+      env.DB.prepare('UPDATE expense_requests SET expense_date=?, purpose=?, requester=?, total_amount=?, fee_amount=? WHERE id=?')
+        .bind(expense_date, String(purpose).slice(0, 500), String(requester).slice(0, 100), total, fee_amount, row.id),
+      ...itemStmts
+    ]);
+  } catch (e) {
+    // 資料庫尚未套用 fee_amount 欄位的遷移時，退回舊欄位寫入
+    await env.DB.batch([
+      env.DB.prepare('UPDATE expense_requests SET expense_date=?, purpose=?, requester=?, total_amount=? WHERE id=?')
+        .bind(expense_date, String(purpose).slice(0, 500), String(requester).slice(0, 100), total, row.id),
+      ...itemStmts
+    ]);
+  }
 
   return json({ ok: true, total_amount: total });
 }
