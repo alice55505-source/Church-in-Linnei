@@ -374,6 +374,37 @@ async function deleteIncomeSession(id) {
 
 /* ===== 召會支出 ===== */
 const REG_TYPE_LABEL = { monthly: '每月固定', yearly: '每年固定', onetime: '一次性' };
+let editingRegularId = null;
+function regularEditFormHTML(it) {
+  const t = it.expense_type || 'monthly';
+  return `
+        <div class="border border-indigo-200 rounded-xl p-3 space-y-2">
+          <input type="text" id="regEditName" value="${esc(it.name)}" placeholder="項目名稱" class="w-full min-w-0 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
+          <div class="flex gap-2">
+            <select id="regEditType" class="px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-base font-bold">
+              ${Object.entries({ monthly: '每月固定支出', yearly: '每年固定支出', onetime: '一次性支出' }).map(([v, l]) => `<option value="${v}" ${v === t ? 'selected' : ''}>${l}</option>`).join('')}
+            </select>
+            <input type="number" id="regEditAmount" value="${it.amount}" placeholder="金額" class="flex-1 min-w-0 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
+          </div>
+          <div class="flex gap-2">
+            <button onclick="saveRegularEdit('${it.id}')" class="flex-1 bg-indigo-600 text-white py-2 rounded-xl font-black text-base">儲存</button>
+            <button onclick="editingRegularId=null;loadRegular()" class="flex-1 bg-slate-100 text-slate-600 py-2 rounded-xl font-black text-base">取消</button>
+          </div>
+        </div>`;
+}
+function editRegular(id) { editingRegularId = id; loadRegular(); }
+async function saveRegularEdit(id) {
+  const name = document.getElementById('regEditName').value.trim();
+  const amount = document.getElementById('regEditAmount').value;
+  const expense_type = document.getElementById('regEditType').value;
+  if (!name) return toast('請輸入項目名稱', true);
+  try {
+    await api('/api/ledger/regular/' + id, { method: 'PATCH', body: { action: 'update', name, amount, expense_type } });
+    editingRegularId = null;
+    toast('已儲存');
+    loadRegular();
+  } catch (e) { toast(e.message, true); }
+}
 async function loadRegular() {
   const month = document.getElementById('regularMonth').value || thisMonthStr();
   document.getElementById('regularMonth').value = month;
@@ -381,7 +412,7 @@ async function loadRegular() {
     const data = await api('/api/ledger/regular?month=' + month);
     const c = document.getElementById('regularList');
     c.innerHTML = data.items.length === 0 ? '<p class="text-base text-slate-300 text-center py-3">尚無項目</p>' :
-      data.items.map(it => `
+      data.items.map(it => it.id === editingRegularId ? regularEditFormHTML(it) : `
         <div class="border border-slate-100 rounded-xl p-3 space-y-2">
           <div class="flex items-center justify-between">
             <div class="font-bold text-lg text-slate-700">${esc(it.name)} <span class="text-[14px] font-bold text-slate-400">（${REG_TYPE_LABEL[it.expense_type] || '每月固定'}）</span><br><span class="text-indigo-600">${fmtMoney(it.amount)}</span>${it.fee_amount ? `<span class="text-[14px] font-bold text-slate-400"> ＋ 手續費 ${fmtMoney(it.fee_amount)} ＝ 應付 ${fmtMoney(it.amount + it.fee_amount)}</span>` : ''}</div>
@@ -397,6 +428,7 @@ async function loadRegular() {
               : (it.status === 'confirmed' ? '' : `<label class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black cursor-pointer">上傳轉帳記錄
                 <input type="file" accept="image/*" class="hidden" onchange="regularAttachProof('${it.id}', this)"></label>`)}
             ${it.status !== 'confirmed' ? `<button onclick="regularConfirm('${it.id}')" class="text-[15px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認完成</button>
+            <button onclick="editRegular('${it.id}')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">編輯</button>
             <button onclick="regularDelete('${it.id}')" class="text-[15px] bg-rose-50 text-rose-500 px-2 py-1.5 rounded-lg font-black">刪除</button>` : ''}
           </div>
         </div>
