@@ -25,10 +25,7 @@ export async function onRequestPatch({ request, env, params }) {
 
   if (body.action === 'confirm') {
     const fresh = await env.DB.prepare('SELECT * FROM monthly_reconciliation WHERE month=?').bind(row.month).first();
-    if (!fresh.cashier_signature_key || !fresh.accountant_signature_key || !fresh.incharge_signature_key) {
-      return badRequest('需出納、會計、負責弟兄皆簽名後才能完成');
-    }
-
+    // 不再需要線上電子簽名，改為列印收支表後手簽
     const mismatch = fresh.bank_balance != null && fresh.computed_balance != null && Math.abs(fresh.bank_balance - fresh.computed_balance) > 0.01;
     if (mismatch && !body.override_note) {
       return badRequest(`銀行餘額（${fresh.bank_balance}）與記帳累計結餘（${fresh.computed_balance}）不符，請填寫說明後確認完成`);
