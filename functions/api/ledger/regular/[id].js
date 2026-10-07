@@ -1,6 +1,8 @@
 import { requireTier } from '../../../_lib/auth.js';
 import { json, badRequest, unauthorized } from '../../../_lib/db.js';
 
+const FEE_AMOUNT = 15;
+
 export async function onRequestPatch({ request, env, params }) {
   const session = await requireTier(request, env, 'ledger');
   if (!session) return unauthorized();
@@ -21,6 +23,16 @@ export async function onRequestPatch({ request, env, params }) {
     if (!body.file_key) return badRequest('缺少轉帳記錄相片');
     await env.DB.prepare('UPDATE regular_expense_items SET payment_proof_key=?, paid=1 WHERE id=?')
       .bind(body.file_key, row.id).run();
+    return json({ ok: true });
+  }
+
+  if (action === 'set_fee') {
+    const fee_amount = body.include ? FEE_AMOUNT : 0;
+    try {
+      await env.DB.prepare('UPDATE regular_expense_items SET fee_amount=? WHERE id=?').bind(fee_amount, row.id).run();
+    } catch (e) {
+      return badRequest('資料庫尚未支援手續費欄位，請稍後再試');
+    }
     return json({ ok: true });
   }
 

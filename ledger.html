@@ -438,9 +438,13 @@ async function loadRegular() {
       data.items.map(it => `
         <div class="border border-slate-100 rounded-xl p-3 space-y-2">
           <div class="flex items-center justify-between">
-            <div class="font-bold text-lg text-slate-700">${esc(it.name)} <span class="text-[14px] font-bold text-slate-400">（${REG_TYPE_LABEL[it.expense_type] || '每月固定'}）</span><br><span class="text-indigo-600">${fmtMoney(it.amount)}</span></div>
+            <div class="font-bold text-lg text-slate-700">${esc(it.name)} <span class="text-[14px] font-bold text-slate-400">（${REG_TYPE_LABEL[it.expense_type] || '每月固定'}）</span><br><span class="text-indigo-600">${fmtMoney(it.amount)}</span>${it.fee_amount ? `<span class="text-[14px] font-bold text-slate-400"> ＋ 手續費 ${fmtMoney(it.fee_amount)} ＝ 應付 ${fmtMoney(it.amount + it.fee_amount)}</span>` : ''}</div>
             <span class="badge ${it.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${it.status === 'confirmed' ? '已完成' : '未完成'}</span>
           </div>
+          <label class="flex items-center gap-2 text-[14px] font-bold text-slate-500 ${it.status === 'confirmed' ? 'opacity-60' : 'cursor-pointer'}">
+            <input type="checkbox" ${it.fee_amount ? 'checked' : ''} ${it.status === 'confirmed' ? 'disabled' : ''} onchange="toggleRegularFee('${it.id}', this.checked)" class="w-4 h-4 accent-indigo-600">
+            含轉帳手續費（NT$15）
+          </label>
           <div class="flex flex-wrap items-center gap-2">
             ${it.payment_proof_key
               ? `<span class="text-[14px] text-emerald-600 font-bold">已上傳轉帳記錄</span>${sigThumb(it.payment_proof_key)}`
@@ -474,6 +478,10 @@ async function regularAttachProof(id, input) {
     await api('/api/ledger/regular/' + id, { method: 'PATCH', body: { action: 'attach_payment_proof', file_key: key } });
     toast('已上傳'); loadRegular();
   } catch (e) { toast(e.message, true); }
+}
+async function toggleRegularFee(id, include) {
+  try { await api('/api/ledger/regular/' + id, { method: 'PATCH', body: { action: 'set_fee', include } }); loadRegular(); }
+  catch (e) { toast(e.message, true); loadRegular(); }
 }
 async function regularConfirm(id) {
   try { await api('/api/ledger/regular/' + id, { method: 'PATCH', body: { action: 'confirm' } }); toast('已確認完成'); loadRegular(); }
