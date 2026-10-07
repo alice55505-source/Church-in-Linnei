@@ -116,9 +116,9 @@
     <div id="tab-recon" class="tab space-y-4">
       <div class="card p-4 space-y-3">
         <h2 class="text-base font-black text-slate-400 uppercase tracking-widest">期初餘額設定</h2>
-        <p class="text-[14px] text-slate-400 font-bold">系統剛啟用時，帳戶已有的既有結餘，只需手動填一次，之後每個月都會自動帶入累計結餘，不用重填。</p>
+        <p id="obHint" class="text-[14px] text-slate-400 font-bold">請填 2026 年 8 月底結餘（系統 9 月啟用）。只能填一次，儲存後即鎖定無法修改，之後每個月都會自動帶入累計結餘。</p>
         <div id="openingBalanceView"></div>
-        <div class="flex items-center gap-2">
+        <div id="obForm" class="flex items-center gap-2">
           <input type="number" id="obAmount" placeholder="期初餘額金額" class="flex-1 min-w-0 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
           <button onclick="saveOpeningBalance()" class="shrink-0 bg-slate-800 text-white px-4 py-2 rounded-xl font-black text-base">儲存</button>
         </div>
@@ -497,13 +497,19 @@ async function regularDelete(id) {
 async function loadOpeningBalance() {
   try {
     const data = await api('/api/ledger/opening-balance');
+    const locked = !!data.amount;
     document.getElementById('obAmount').value = data.amount || '';
-    document.getElementById('openingBalanceView').innerHTML =
-      `<p class="text-base font-bold text-indigo-600">目前設定：${fmtMoney(data.amount)}</p>`;
+    document.getElementById('obForm').classList.toggle('hidden', locked);
+    document.getElementById('obHint').classList.toggle('hidden', locked);
+    document.getElementById('openingBalanceView').innerHTML = locked
+      ? `<p class="text-base font-bold text-indigo-600">2026 年 8 月底結餘：${fmtMoney(data.amount)}（已鎖定）</p>`
+      : '';
   } catch (e) { toast(e.message, true); }
 }
 async function saveOpeningBalance() {
   const amount = document.getElementById('obAmount').value;
+  if (!Number(amount)) return toast('請輸入期初餘額', true);
+  if (!confirm(`確定期初餘額為 ${fmtMoney(Number(amount))}？儲存後將鎖定，無法再修改。`)) return;
   try {
     await api('/api/ledger/opening-balance', { method: 'PATCH', body: { amount } });
     toast('已儲存');
