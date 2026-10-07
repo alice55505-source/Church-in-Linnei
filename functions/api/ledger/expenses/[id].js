@@ -1,6 +1,8 @@
 import { requireTier } from '../../../_lib/auth.js';
 import { nowISO, json, badRequest, unauthorized, saveDataUrlImage } from '../../../_lib/db.js';
 
+const FEE_AMOUNT = 15;
+
 export async function onRequestPatch({ request, env, params }) {
   const session = await requireTier(request, env, 'ledger');
   if (!session) return unauthorized();
@@ -19,6 +21,17 @@ export async function onRequestPatch({ request, env, params }) {
     if (!key) return badRequest('缺少請款人簽名');
     await env.DB.prepare('UPDATE ledger_expenses SET requester_signature_key=?, requester_signed_at=? WHERE id=?')
       .bind(key, nowISO(), row.id).run();
+    return json({ ok: true });
+  }
+
+  // 轉帳手續費由記帳頁決定是否計入，不是請款人自己填
+  if (action === 'set_fee') {
+    const fee_amount = body.include ? FEE_AMOUNT : 0;
+    try {
+      await env.DB.prepare('UPDATE ledger_expenses SET fee_amount=? WHERE id=?').bind(fee_amount, row.id).run();
+    } catch (e) {
+      return badRequest('資料庫尚未支援手續費欄位，請稍後再試');
+    }
     return json({ ok: true });
   }
 

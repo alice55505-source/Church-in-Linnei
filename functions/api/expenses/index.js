@@ -39,14 +39,16 @@ export async function onRequestPost({ request, env }) {
     total += t;
     return { id: uid(), name: String(it.name || '').slice(0, 200), unit_price, qty, total: t };
   });
-  const fee_amount = Number(body.fee_amount) || 0;
-  total += fee_amount;
 
   const safeReceiptKeys = Array.isArray(receipt_keys)
     ? receipt_keys.filter(k => typeof k === 'string' && /^receipts\/[A-Za-z0-9._-]+$/.test(k)).slice(0, 10)
     : [];
 
-  const itemStmts = [
+  const stmts = [
+    env.DB.prepare(
+      `INSERT INTO expense_requests (id, expense_date, purpose, requester, request_date, total_amount, status, created_at)
+       VALUES (?,?,?,?,?,?,?,?)`
+    ).bind(id, expense_date, String(purpose).slice(0, 500), String(requester).slice(0, 100), now.slice(0, 10), total, 'submitted', now),
     ...itemRows.map(it =>
       env.DB.prepare(`INSERT INTO expense_items (id, request_id, name, unit_price, qty, total) VALUES (?,?,?,?,?,?)`)
         .bind(it.id, id, it.name, it.unit_price, it.qty, it.total)
@@ -56,24 +58,7 @@ export async function onRequestPost({ request, env }) {
         .bind(uid(), id, key, now)
     )
   ];
-  try {
-    await env.DB.batch([
-      env.DB.prepare(
-        `INSERT INTO expense_requests (id, expense_date, purpose, requester, request_date, total_amount, fee_amount, status, created_at)
-         VALUES (?,?,?,?,?,?,?,?,?)`
-      ).bind(id, expense_date, String(purpose).slice(0, 500), String(requester).slice(0, 100), now.slice(0, 10), total, fee_amount, 'submitted', now),
-      ...itemStmts
-    ]);
-  } catch (e) {
-    // 資料庫尚未套用 fee_amount 欄位的遷移時，退回舊欄位寫入
-    await env.DB.batch([
-      env.DB.prepare(
-        `INSERT INTO expense_requests (id, expense_date, purpose, requester, request_date, total_amount, status, created_at)
-         VALUES (?,?,?,?,?,?,?,?)`
-      ).bind(id, expense_date, String(purpose).slice(0, 500), String(requester).slice(0, 100), now.slice(0, 10), total, 'submitted', now),
-      ...itemStmts
-    ]);
-  }
+  await env.DB.batch(stmts);
 
   return json({ ok: true, id, request_date: now.slice(0, 10), total_amount: total }, 201);
 }

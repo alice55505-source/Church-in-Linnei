@@ -291,7 +291,7 @@ async function loadExpenses() {
           <div class="flex items-center justify-between gap-2">
             <div>
               <div class="font-bold text-lg text-slate-700">${esc(r.purpose)}</div>
-              <div class="text-[15px] text-slate-400 font-medium">${r.expense_date} ・ ${esc(r.requester)} ・ ${fmtMoney(r.total_amount)}${r.fee_amount ? `（含手續費 ${fmtMoney(r.fee_amount)}）` : ''}</div>
+              <div class="text-[15px] text-slate-400 font-medium">${r.expense_date} ・ ${esc(r.requester)} ・ ${fmtMoney(r.total_amount)}</div>
             </div>
             <div class="flex gap-2 shrink-0">
               <button onclick="deleteExpenseRequest('${r.id}')" class="text-rose-500 px-2 py-1.5 rounded-lg font-black text-base">刪除</button>
@@ -309,11 +309,15 @@ async function loadExpenses() {
           <div class="flex items-center justify-between">
             <div>
               <div class="font-bold text-lg text-slate-700">${esc(e.purpose)}</div>
-              <div class="text-[15px] text-slate-400 font-medium">${e.expense_date} ・ ${esc(e.requester)} ・ ${fmtMoney(e.total_amount)}${e.fee_amount ? `（含手續費 ${fmtMoney(e.fee_amount)}）` : ''}</div>
+              <div class="text-[15px] text-slate-400 font-medium">${e.expense_date} ・ ${esc(e.requester)} ・ 品項 ${fmtMoney(e.total_amount)}${e.fee_amount ? ` ＋ 手續費 ${fmtMoney(e.fee_amount)} ＝ 應付 ${fmtMoney(e.total_amount + e.fee_amount)}` : ''}</div>
             </div>
             <span class="badge ${e.status === 'finalized' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${e.status === 'finalized' ? '已入帳' : '記帳中'}</span>
           </div>
           ${receiptThumbsHTML(e.receipts)}
+          <label class="flex items-center gap-2 text-[14px] font-bold text-slate-500 ${e.status === 'finalized' ? 'opacity-60' : 'cursor-pointer'}">
+            <input type="checkbox" ${e.fee_amount ? 'checked' : ''} ${e.status === 'finalized' ? 'disabled' : ''} onchange="toggleExpenseFee('${e.id}', this.checked)" class="w-4 h-4 accent-indigo-600">
+            含轉帳手續費（NT$15）
+          </label>
           <div class="flex flex-wrap items-center gap-2">
             ${e.requester_signature_key
               ? `<span class="text-[14px] text-emerald-600 font-bold">請款人已簽收</span>${sigThumb(e.requester_signature_key)}`
@@ -333,6 +337,10 @@ async function deleteExpenseRequest(id) {
   if (!confirmDelete('確定刪除此筆請款單？已入帳的無法刪除。')) return;
   try { await api('/api/expenses/' + id, { method: 'DELETE' }); toast('已刪除'); loadExpenses(); }
   catch (e) { toast(e.message, true); }
+}
+async function toggleExpenseFee(id, include) {
+  try { await api('/api/ledger/expenses/' + id, { method: 'PATCH', body: { action: 'set_fee', include } }); loadExpenses(); }
+  catch (e) { toast(e.message, true); loadExpenses(); }
 }
 async function ledgerSignRequester(id) {
   const sig = await askForSignature('請款人簽收');
