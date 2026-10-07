@@ -1,4 +1,4 @@
-import { requireTier } from '../../_lib/auth.js';
+import { requireTier, requireIncomeLogin } from '../../_lib/auth.js';
 import { uid, nowISO, json, badRequest, unauthorized } from '../../_lib/db.js';
 
 export async function onRequestGet({ request, env }) {
@@ -13,7 +13,7 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPost({ request, env }) {
-  const session = await requireTier(request, env, 'income');
+  const session = await requireIncomeLogin(request, env);
   if (!session) return unauthorized();
   const body = await request.json().catch(() => ({}));
   const { session_date, opener_name, amount_general, amount_fulltime, amount_taiwan_gospel, amount_overseas, amount_other, other_note, personal_offerings } = body;

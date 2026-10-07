@@ -207,7 +207,7 @@ async function handleGoogleCredential(response) {
     checkLogin();
   } catch (e) { toast(e.message, true); }
 }
-async function doLogout() { await api('/api/auth/logout', { method: 'POST' }); location.reload(); }
+async function doLogout() { await api('/api/auth/logout', { method: 'POST', body: { tier: 'ledger' } }); location.reload(); }
 
 async function loadReminderBanner() {
   const warnings = [];
