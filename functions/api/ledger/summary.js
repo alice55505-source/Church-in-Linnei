@@ -10,7 +10,7 @@ export async function onRequestGet({ request, env }) {
   if (!month) return badRequest('缺少月份');
 
   const expenses = await env.DB.prepare(`
-    SELECT er.*, le.status as ledger_status FROM expense_requests er
+    SELECT er.*, le.status as ledger_status, le.fee_amount FROM expense_requests er
     JOIN ledger_expenses le ON le.request_id = er.id
     WHERE er.expense_date LIKE ? ORDER BY er.expense_date
   `).bind(month + '%').all();
@@ -37,8 +37,9 @@ export async function onRequestGet({ request, env }) {
   const totalIncome = incomeSessions.results
     .filter(s => s.status === 'archived')
     .reduce((s, r) => s + r.amount_general + r.amount_fulltime + r.amount_taiwan_gospel + r.amount_overseas + r.amount_other, 0);
-  const totalExpense = expenses.results.reduce((s, r) => s + r.total_amount, 0) +
-    regular.results.filter(r => r.status === 'confirmed').reduce((s, r) => s + r.amount, 0);
+  // 支出合計含轉帳手續費
+  const totalExpense = expenses.results.reduce((s, r) => s + r.total_amount + (r.fee_amount || 0), 0) +
+    regular.results.filter(r => r.status === 'confirmed').reduce((s, r) => s + r.amount + (r.fee_amount || 0), 0);
   const cumulativeBalance = await computeCumulativeBalance(env, month);
 
   return json({
