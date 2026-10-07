@@ -9,9 +9,21 @@ export async function onRequestPatch({ request, env, params }) {
   const body = await request.json().catch(() => ({}));
   const row = await env.DB.prepare('SELECT * FROM ledger_expenses WHERE id=?').bind(params.id).first();
   if (!row) return json({ error: '找不到' }, 404);
-  if (row.status === 'finalized') return badRequest('已入帳，無法修改');
-
   const action = body.action;
+
+  // 轉帳手續費由記帳頁決定是否計入，不是請款人自己填
+  // 已入帳／已確認後仍可補勾手續費（功能上線前已入帳的紀錄需要補登）
+  if (action === 'set_fee') {
+    const fee_amount = body.include ? FEE_AMOUNT : 0;
+    try {
+      await env.DB.prepare('UPDATE ledger_expenses SET fee_amount=? WHERE id=?').bind(fee_amount, row.id).run();
+    } catch (e) {
+      return badRequest('資料庫尚未支援手續費欄位，請稍後再試');
+    }
+    return json({ ok: true });
+  }
+
+  if (row.status === 'finalized') return badRequest('已入帳，無法修改');
 
   // 簽名一旦完成即鎖定，不可重簽或取消，避免財務紀錄被竄改
   // 請款簽收：由請款人本人簽名確認已收到款項，不是上傳照片
@@ -21,17 +33,6 @@ export async function onRequestPatch({ request, env, params }) {
     if (!key) return badRequest('缺少請款人簽名');
     await env.DB.prepare('UPDATE ledger_expenses SET requester_signature_key=?, requester_signed_at=? WHERE id=?')
       .bind(key, nowISO(), row.id).run();
-    return json({ ok: true });
-  }
-
-  // 轉帳手續費由記帳頁決定是否計入，不是請款人自己填
-  if (action === 'set_fee') {
-    const fee_amount = body.include ? FEE_AMOUNT : 0;
-    try {
-      await env.DB.prepare('UPDATE ledger_expenses SET fee_amount=? WHERE id=?').bind(fee_amount, row.id).run();
-    } catch (e) {
-      return badRequest('資料庫尚未支援手續費欄位，請稍後再試');
-    }
     return json({ ok: true });
   }
 

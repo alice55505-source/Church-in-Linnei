@@ -299,8 +299,8 @@ function expenseEntryHTML(e) {
         <span class="badge ${e.status === 'finalized' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${e.status === 'finalized' ? '已入帳' : '記帳中'}</span>
       </div>
       ${receiptThumbsHTML(e.receipts)}
-      <label class="flex items-center gap-2 text-[14px] font-bold text-slate-500 ${e.status === 'finalized' ? 'opacity-60' : 'cursor-pointer'}">
-        <input type="checkbox" ${e.fee_amount ? 'checked' : ''} ${e.status === 'finalized' ? 'disabled' : ''} onchange="toggleExpenseFee('${e.id}', this.checked)" class="w-4 h-4 accent-indigo-600">
+      <label class="flex items-center gap-2 text-[14px] font-bold text-slate-500 cursor-pointer">
+        <input type="checkbox" ${e.fee_amount ? 'checked' : ''} onchange="toggleExpenseFee('${e.id}', this.checked)" class="w-4 h-4 accent-indigo-600">
         含轉帳手續費（NT$15）
       </label>
       <div class="flex flex-wrap items-center gap-2">
@@ -441,8 +441,8 @@ async function loadRegular() {
             <div class="font-bold text-lg text-slate-700">${esc(it.name)} <span class="text-[14px] font-bold text-slate-400">（${REG_TYPE_LABEL[it.expense_type] || '每月固定'}）</span><br><span class="text-indigo-600">${fmtMoney(it.amount)}</span>${it.fee_amount ? `<span class="text-[14px] font-bold text-slate-400"> ＋ 手續費 ${fmtMoney(it.fee_amount)} ＝ 應付 ${fmtMoney(it.amount + it.fee_amount)}</span>` : ''}</div>
             <span class="badge ${it.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${it.status === 'confirmed' ? '已完成' : '未完成'}</span>
           </div>
-          <label class="flex items-center gap-2 text-[14px] font-bold text-slate-500 ${it.status === 'confirmed' ? 'opacity-60' : 'cursor-pointer'}">
-            <input type="checkbox" ${it.fee_amount ? 'checked' : ''} ${it.status === 'confirmed' ? 'disabled' : ''} onchange="toggleRegularFee('${it.id}', this.checked)" class="w-4 h-4 accent-indigo-600">
+          <label class="flex items-center gap-2 text-[14px] font-bold text-slate-500 cursor-pointer">
+            <input type="checkbox" ${it.fee_amount ? 'checked' : ''} onchange="toggleRegularFee('${it.id}', this.checked)" class="w-4 h-4 accent-indigo-600">
             含轉帳手續費（NT$15）
           </label>
           <div class="flex flex-wrap items-center gap-2">
