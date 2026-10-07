@@ -546,7 +546,8 @@ async function loadRecon() {
       <span class="badge ${r.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'} mt-2 inline-block">${r.status === 'confirmed' ? '本月已完成' : '待確認'}</span>
       ${r.amount_override_note ? `<div class="text-[14px] font-bold text-amber-600 mt-1">差額說明：${esc(r.amount_override_note)}</div>` : ''}
       <div class="flex flex-wrap items-center gap-2 mt-2">
-        ${r.status !== 'confirmed' ? `<button onclick="reconConfirm('${month}')" class="text-[15px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認完成</button>` : ''}
+        ${r.status !== 'confirmed' ? `<button onclick="reconEditBalance('${month}', ${r.bank_balance || 0})" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">修改銀行餘額</button>
+        <button onclick="reconConfirm('${month}')" class="text-[15px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認完成</button>` : ''}
       </div>
     `;
   } catch (e) { toast(e.message, true); }
@@ -555,12 +556,22 @@ async function submitRecon(month) {
   const bank_balance = document.getElementById('bankBalance').value;
   const fileInput = document.getElementById('bankFile');
   const file = fileInput.files[0];
+  if (bank_balance === '') return toast('請輸入銀行帳戶實際餘額', true);
   if (!file) return toast('請上傳存簿照片或網銀截圖', true);
   try {
     const file_key = await uploadFile(file);
     await api('/api/ledger/reconciliation', { method: 'POST', body: { month, bank_balance, file_key } });
     toast('已送出，請按確認完成');
     loadRecon();
+  } catch (e) { toast(e.message, true); }
+}
+async function reconEditBalance(month, current) {
+  const v = prompt('銀行帳戶實際餘額', current || '');
+  if (v === null) return;
+  if (v.trim() === '' || isNaN(Number(v))) return toast('請輸入數字', true);
+  try {
+    await api('/api/ledger/reconciliation/' + month, { method: 'PATCH', body: { action: 'update_balance', bank_balance: v.trim() } });
+    toast('已更新'); loadRecon();
   } catch (e) { toast(e.message, true); }
 }
 async function reconConfirm(month) {
