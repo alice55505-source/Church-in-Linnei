@@ -19,6 +19,7 @@ export async function onRequestPost({ request, env }) {
   const body = await request.json().catch(() => ({}));
   const { month, bank_balance, file_key } = body;
   if (!month || !file_key) return badRequest('缺少月份或存簿/網銀照片');
+  if (bank_balance === '' || bank_balance == null || isNaN(Number(bank_balance))) return badRequest('請輸入銀行帳戶實際餘額');
 
   const existing = await env.DB.prepare('SELECT status FROM monthly_reconciliation WHERE month=?').bind(month).first();
   if (existing && existing.status === 'confirmed') return badRequest('本月已完成結算，無法修改');

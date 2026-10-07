@@ -1,4 +1,5 @@
 import { requireTier } from '../../../_lib/auth.js';
+import { computeCumulativeBalance } from '../../../_lib/balance.js';
 import { nowISO, json, badRequest, unauthorized, saveDataUrlImage } from '../../../_lib/db.js';
 
 const ROLE_FIELD = {
@@ -20,6 +21,15 @@ export async function onRequestPatch({ request, env, params }) {
     if (!key) return badRequest('缺少簽名');
     const [colKey, colAt] = ROLE_FIELD[body.role];
     await env.DB.prepare(`UPDATE monthly_reconciliation SET ${colKey}=?, ${colAt}=? WHERE month=?`).bind(key, nowISO(), row.month).run();
+    return json({ ok: true });
+  }
+
+  // 修改銀行餘額（同時重算記帳累計結餘，反映之後補登的手續費等異動）
+  if (body.action === 'update_balance') {
+    if (body.bank_balance === '' || body.bank_balance == null || isNaN(Number(body.bank_balance))) return badRequest('請輸入銀行帳戶實際餘額');
+    const computed_balance = await computeCumulativeBalance(env, row.month);
+    await env.DB.prepare('UPDATE monthly_reconciliation SET bank_balance=?, computed_balance=?, updated_at=? WHERE month=?')
+      .bind(Number(body.bank_balance), computed_balance, nowISO(), row.month).run();
     return json({ ok: true });
   }
 
