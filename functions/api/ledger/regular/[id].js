@@ -9,9 +9,20 @@ export async function onRequestPatch({ request, env, params }) {
   const body = await request.json().catch(() => ({}));
   const row = await env.DB.prepare('SELECT * FROM regular_expense_items WHERE id=?').bind(params.id).first();
   if (!row) return json({ error: '找不到' }, 404);
-  if (row.status === 'confirmed') return badRequest('已確認完成，無法修改');
-
   const action = body.action;
+
+  // 已入帳／已確認後仍可補勾手續費（功能上線前已入帳的紀錄需要補登）
+  if (action === 'set_fee') {
+    const fee_amount = body.include ? FEE_AMOUNT : 0;
+    try {
+      await env.DB.prepare('UPDATE regular_expense_items SET fee_amount=? WHERE id=?').bind(fee_amount, row.id).run();
+    } catch (e) {
+      return badRequest('資料庫尚未支援手續費欄位，請稍後再試');
+    }
+    return json({ ok: true });
+  }
+
+  if (row.status === 'confirmed') return badRequest('已確認完成，無法修改');
 
   if (action === 'update') {
     await env.DB.prepare('UPDATE regular_expense_items SET name=?, amount=?, note=? WHERE id=?')
@@ -23,16 +34,6 @@ export async function onRequestPatch({ request, env, params }) {
     if (!body.file_key) return badRequest('缺少轉帳記錄相片');
     await env.DB.prepare('UPDATE regular_expense_items SET payment_proof_key=?, paid=1 WHERE id=?')
       .bind(body.file_key, row.id).run();
-    return json({ ok: true });
-  }
-
-  if (action === 'set_fee') {
-    const fee_amount = body.include ? FEE_AMOUNT : 0;
-    try {
-      await env.DB.prepare('UPDATE regular_expense_items SET fee_amount=? WHERE id=?').bind(fee_amount, row.id).run();
-    } catch (e) {
-      return badRequest('資料庫尚未支援手續費欄位，請稍後再試');
-    }
     return json({ ok: true });
   }
 
