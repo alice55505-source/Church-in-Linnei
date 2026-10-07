@@ -167,7 +167,7 @@ function renderOfferingRows() {
 
 async function checkLogin() {
   const me = await api('/api/auth/me');
-  if (me.tier) {
+  if (me.income) {
     document.getElementById('loginGate').classList.add('hidden');
     document.getElementById('mainContent').classList.remove('hidden');
     document.getElementById('logoutBtn').classList.remove('hidden');
@@ -189,7 +189,7 @@ async function doLogin() {
   } catch (e) { toast(e.message, true); }
 }
 async function doLogout() {
-  await api('/api/auth/logout', { method: 'POST' });
+  await api('/api/auth/logout', { method: 'POST', body: { tier: 'income' } });
   location.reload();
 }
 function resetSessionForm() {

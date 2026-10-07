@@ -80,6 +80,12 @@ export async function requireTier(request, env, minTier) {
   return null;
 }
 
+// 奉獻頁本身只認奉獻密碼登入（session_income），記帳的 Google 登入不能代替，兩邊登入互相獨立
+export async function requireIncomeLogin(request, env) {
+  const payload = await verifySession(parseCookies(request)['session_income'], sessionSecret(env));
+  return payload && payload.tier === 'income' ? payload : null;
+}
+
 export function cookieHeader(name, value, maxAgeSeconds) {
   const parts = [`${name}=${encodeURIComponent(value)}`, 'Path=/', 'HttpOnly', 'Secure', 'SameSite=Lax'];
   if (maxAgeSeconds != null) parts.push(`Max-Age=${maxAgeSeconds}`);

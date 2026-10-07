@@ -1,5 +1,5 @@
 import { requireTier } from '../../_lib/auth.js';
-import { json, unauthorized } from '../../_lib/db.js';
+import { json, unauthorized, badRequest } from '../../_lib/db.js';
 
 export async function onRequestGet({ request, env }) {
   const session = await requireTier(request, env, 'ledger');
@@ -11,6 +11,9 @@ export async function onRequestGet({ request, env }) {
 export async function onRequestPatch({ request, env }) {
   const session = await requireTier(request, env, 'ledger');
   if (!session) return unauthorized();
+  // 期初餘額（8 月底結餘）填過一次就鎖定，避免被誤改；需更改請直接在 D1 Console 修改 settings
+  const current = await env.DB.prepare("SELECT value FROM settings WHERE key='opening_balance_amount'").first();
+  if (Number(current && current.value)) return badRequest('期初餘額已設定並鎖定，無法修改');
   const body = await request.json().catch(() => ({}));
   const amount = Number(body.amount) || 0;
   await env.DB.prepare("UPDATE settings SET value=? WHERE key='opening_balance_amount'").bind(String(amount)).run();

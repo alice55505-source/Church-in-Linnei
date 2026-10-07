@@ -1,4 +1,4 @@
-import { requireTier } from '../../_lib/auth.js';
+import { requireTier, requireIncomeLogin } from '../../_lib/auth.js';
 import { uid, nowISO, json, badRequest, unauthorized, saveDataUrlImage } from '../../_lib/db.js';
 
 export async function onRequestGet({ request, env, params }) {
@@ -12,7 +12,7 @@ export async function onRequestGet({ request, env, params }) {
 }
 
 export async function onRequestPatch({ request, env, params }) {
-  const session = await requireTier(request, env, 'income');
+  const session = await requireIncomeLogin(request, env);
   if (!session) return unauthorized();
   const body = await request.json().catch(() => ({}));
   const row = await env.DB.prepare('SELECT * FROM income_sessions WHERE id=?').bind(params.id).first();

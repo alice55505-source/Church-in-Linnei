@@ -116,9 +116,9 @@
     <div id="tab-recon" class="tab space-y-4">
       <div class="card p-4 space-y-3">
         <h2 class="text-base font-black text-slate-400 uppercase tracking-widest">期初餘額設定</h2>
-        <p class="text-[14px] text-slate-400 font-bold">系統剛啟用時，帳戶已有的既有結餘，只需手動填一次，之後每個月都會自動帶入累計結餘，不用重填。</p>
+        <p id="obHint" class="text-[14px] text-slate-400 font-bold">請填 2026 年 8 月底結餘（系統 9 月啟用）。只能填一次，儲存後即鎖定無法修改，之後每個月都會自動帶入累計結餘。</p>
         <div id="openingBalanceView"></div>
-        <div class="flex items-center gap-2">
+        <div id="obForm" class="flex items-center gap-2">
           <input type="number" id="obAmount" placeholder="期初餘額金額" class="flex-1 min-w-0 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none text-lg font-bold">
           <button onclick="saveOpeningBalance()" class="shrink-0 bg-slate-800 text-white px-4 py-2 rounded-xl font-black text-base">儲存</button>
         </div>
@@ -140,11 +140,6 @@
           <input type="month" id="printMonth" class="text-base font-bold px-2 py-1.5 bg-slate-50 border border-slate-100 rounded-lg outline-none">
         </div>
         <div id="printStatus"></div>
-      </div>
-      <div class="card p-4 space-y-3">
-        <h2 class="text-base font-black text-slate-400 uppercase tracking-widest">本月報表線上簽名</h2>
-        <p class="text-[14px] text-slate-400 font-bold">出納、會計、負責弟兄在此線上簽名，簽名會直接印在收支表 PDF 上，不用印出來再手簽。</p>
-        <div id="printSignatures" class="flex flex-wrap items-center gap-2"></div>
       </div>
       <div class="card p-0 overflow-x-auto">
         <div id="printPreview"></div>
@@ -207,7 +202,7 @@ async function handleGoogleCredential(response) {
     checkLogin();
   } catch (e) { toast(e.message, true); }
 }
-async function doLogout() { await api('/api/auth/logout', { method: 'POST' }); location.reload(); }
+async function doLogout() { await api('/api/auth/logout', { method: 'POST', body: { tier: 'ledger' } }); location.reload(); }
 
 async function loadReminderBanner() {
   const warnings = [];
@@ -497,13 +492,19 @@ async function regularDelete(id) {
 async function loadOpeningBalance() {
   try {
     const data = await api('/api/ledger/opening-balance');
+    const locked = !!data.amount;
     document.getElementById('obAmount').value = data.amount || '';
-    document.getElementById('openingBalanceView').innerHTML =
-      `<p class="text-base font-bold text-indigo-600">目前設定：${fmtMoney(data.amount)}</p>`;
+    document.getElementById('obForm').classList.toggle('hidden', locked);
+    document.getElementById('obHint').classList.toggle('hidden', locked);
+    document.getElementById('openingBalanceView').innerHTML = locked
+      ? `<p class="text-base font-bold text-indigo-600">2026 年 8 月底結餘：${fmtMoney(data.amount)}（已鎖定）</p>`
+      : '';
   } catch (e) { toast(e.message, true); }
 }
 async function saveOpeningBalance() {
   const amount = document.getElementById('obAmount').value;
+  if (!Number(amount)) return toast('請輸入期初餘額', true);
+  if (!confirm(`確定期初餘額為 ${fmtMoney(Number(amount))}？儲存後將鎖定，無法再修改。`)) return;
   try {
     await api('/api/ledger/opening-balance', { method: 'PATCH', body: { amount } });
     toast('已儲存');
@@ -605,13 +606,8 @@ async function loadPrintStatus() {
   const month = document.getElementById('printMonth').value || thisMonthStr();
   document.getElementById('printMonth').value = month;
   try {
-    const [data, sigRes] = await Promise.all([
-      api('/api/ledger/summary?month=' + month),
-      api('/api/ledger/statement-signatures/' + month)
-    ]);
-    const sig = sigRes.record || {};
+    const data = await api('/api/ledger/summary?month=' + month);
     window.__printData = data;
-    window.__printSignatures = sig;
     const c = document.getElementById('printStatus');
     if (!data.ready) {
       const reasons = [];
@@ -624,34 +620,10 @@ async function loadPrintStatus() {
     } else {
       c.innerHTML = `<button onclick="printStatement('${month}')" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-black text-lg">列印收支表（PDF）</button>`;
     }
-    renderPrintSignatures(month, sig);
-    document.getElementById('printPreview').innerHTML = buildStatementHTML(month, data, sig);
+    document.getElementById('printPreview').innerHTML = buildStatementHTML(month, data);
   } catch (e) { toast(e.message, true); }
 }
-function renderPrintSignatures(month, sig) {
-  const roles = [['cashier', '出納'], ['accountant', '會計'], ['incharge', '負責弟兄']];
-  document.getElementById('printSignatures').innerHTML = roles.map(([role, label]) => {
-    const key = sig[role + '_signature_key'];
-    return key
-      ? `<span class="text-[14px] text-emerald-600 font-bold flex items-center gap-1">${label}已簽名${sigThumb(key)}</span>`
-      : `<button onclick="signStatement('${month}','${role}')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">${label}簽名</button>`;
-  }).join('');
-}
-async function signStatement(month, role) {
-  const roleLabel = { cashier: '出納', accountant: '會計', incharge: '負責弟兄' }[role];
-  const sig = await askForSignature(roleLabel + '簽名');
-  if (!sig) return;
-  try {
-    await api('/api/ledger/statement-signatures/' + month, { method: 'PATCH', body: { role, signature: sig } });
-    toast('已簽名');
-    loadPrintStatus();
-  } catch (e) { toast(e.message, true); }
-}
-function buildStatementHTML(month, data, sig) {
-  sig = sig || {};
-  const sigLine = (label, key) => key
-    ? `<div>${label}：<img src="${fileUrl(key)}" style="height:36px;vertical-align:middle;"></div>`
-    : `<div>${label}：_____________________</div>`;
+function buildStatementHTML(month, data) {
   const t = data.totals;
   return `
     <div style="padding:32px;font-family:'Microsoft JhengHei',sans-serif;color:#111;">
@@ -677,19 +649,13 @@ function buildStatementHTML(month, data, sig) {
         <tr><td style="padding:4px;">本月支出合計</td><td style="padding:4px;text-align:right;">${fmtMoney(t.totalExpense)}</td></tr>
         <tr style="font-weight:900;"><td style="padding:4px;">累計結餘</td><td style="padding:4px;text-align:right;">${fmtMoney(t.cumulativeBalance)}</td></tr>
       </table>
-
-      <div style="display:flex;justify-content:space-around;margin-top:60px;font-size:12px;text-align:center;">
-        ${sigLine('出納', sig.cashier_signature_key)}
-        ${sigLine('會計', sig.accountant_signature_key)}
-        ${sigLine('負責弟兄', sig.incharge_signature_key)}
-      </div>
     </div>
   `;
 }
 function printStatement(month) {
   const data = window.__printData;
   if (!data || !data.ready) { toast('本月尚未全部結算完成，無法列印', true); return; }
-  document.getElementById('printArea').innerHTML = buildStatementHTML(month, data, window.__printSignatures);
+  document.getElementById('printArea').innerHTML = buildStatementHTML(month, data);
   setTimeout(() => window.print(), 100);
 }
 
