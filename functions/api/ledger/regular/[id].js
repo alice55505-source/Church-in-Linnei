@@ -24,9 +24,23 @@ export async function onRequestPatch({ request, env, params }) {
 
   if (row.status === 'confirmed') return badRequest('已確認完成，無法修改');
 
+  // 編輯名稱／金額／週期。改名或改週期時，舊名稱的過去紀錄停止自動延續；
+  // 本月之後已自動帶入、尚未處理的舊紀錄刪除，之後會依這筆新設定重新帶入
   if (action === 'update') {
-    await env.DB.prepare('UPDATE regular_expense_items SET name=?, amount=?, note=? WHERE id=?')
-      .bind(body.name || row.name, Number(body.amount) || 0, body.note ?? row.note, row.id).run();
+    const name = String(body.name || row.name).trim().slice(0, 200);
+    const amount = Number(body.amount) || 0;
+    const expense_type = ['monthly', 'yearly', 'onetime'].includes(body.expense_type) ? body.expense_type : (row.expense_type || 'monthly');
+    const recur_month = expense_type === 'yearly' ? Number(row.month.slice(5, 7)) : null;
+    const stmts = [
+      env.DB.prepare('UPDATE regular_expense_items SET name=?, amount=?, note=?, expense_type=?, recur_month=?, active=1 WHERE id=?')
+        .bind(name, amount, body.note ?? row.note, expense_type, recur_month, row.id),
+      env.DB.prepare(`DELETE FROM regular_expense_items WHERE name=? AND month>? AND status!='confirmed' AND payment_proof_key IS NULL AND id!=?`)
+        .bind(row.name, row.month, row.id)
+    ];
+    if (name !== row.name || expense_type !== row.expense_type) {
+      stmts.push(env.DB.prepare('UPDATE regular_expense_items SET active=0 WHERE name=? AND month<?').bind(row.name, row.month));
+    }
+    await env.DB.batch(stmts);
     return json({ ok: true });
   }
 
