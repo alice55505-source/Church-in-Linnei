@@ -560,18 +560,9 @@ async function loadRecon() {
         <div class="${diff === 0 ? 'text-emerald-600' : 'text-rose-500'}">差額：${fmtMoney(diff)}${diff === 0 ? '（相符）' : ''}</div>
         <img src="${fileUrl(r.bank_statement_key)}" onclick="openImagePreview('${fileUrl(r.bank_statement_key)}')" class="rounded-xl border border-slate-100 mt-2 max-h-48 cursor-pointer">
       </div>
-      <span class="badge ${r.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'} mt-2 inline-block">${r.status === 'confirmed' ? '本月已完成' : '待簽名'}</span>
+      <span class="badge ${r.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'} mt-2 inline-block">${r.status === 'confirmed' ? '本月已完成' : '待確認'}</span>
       ${r.amount_override_note ? `<div class="text-[14px] font-bold text-amber-600 mt-1">差額說明：${esc(r.amount_override_note)}</div>` : ''}
       <div class="flex flex-wrap items-center gap-2 mt-2">
-        ${r.cashier_signature_key
-          ? `<span class="text-[14px] text-emerald-600 font-bold">出納已簽名</span>${sigThumb(r.cashier_signature_key)}`
-          : (r.status === 'confirmed' ? '' : `<button onclick="reconSign('${month}','cashier')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">出納簽名</button>`)}
-        ${r.accountant_signature_key
-          ? `<span class="text-[14px] text-emerald-600 font-bold">會計已簽名</span>${sigThumb(r.accountant_signature_key)}`
-          : (r.status === 'confirmed' ? '' : `<button onclick="reconSign('${month}','accountant')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">會計簽名</button>`)}
-        ${r.incharge_signature_key
-          ? `<span class="text-[14px] text-emerald-600 font-bold">負責弟兄已簽名</span>${sigThumb(r.incharge_signature_key)}`
-          : (r.status === 'confirmed' ? '' : `<button onclick="reconSign('${month}','incharge')" class="text-[15px] bg-slate-100 text-slate-600 px-2 py-1.5 rounded-lg font-black">負責弟兄簽名</button>`)}
         ${r.status !== 'confirmed' ? `<button onclick="reconConfirm('${month}')" class="text-[15px] bg-indigo-600 text-white px-2 py-1.5 rounded-lg font-black">確認完成</button>` : ''}
       </div>
     `;
@@ -585,16 +576,9 @@ async function submitRecon(month) {
   try {
     const file_key = await uploadFile(file);
     await api('/api/ledger/reconciliation', { method: 'POST', body: { month, bank_balance, file_key } });
-    toast('已送出，待三方簽名');
+    toast('已送出，請按確認完成');
     loadRecon();
   } catch (e) { toast(e.message, true); }
-}
-async function reconSign(month, role) {
-  const roleLabel = { cashier: '出納', accountant: '會計', incharge: '負責弟兄' }[role];
-  const sig = await askForSignature(roleLabel + '簽名');
-  if (!sig) return;
-  try { await api('/api/ledger/reconciliation/' + month, { method: 'PATCH', body: { action: 'sign', role, signature: sig } }); toast('已簽名'); loadRecon(); }
-  catch (e) { toast(e.message, true); }
 }
 async function reconConfirm(month) {
   try { await patchWithOverride('/api/ledger/reconciliation/' + month, { action: 'confirm' }); toast('本月結算完成'); loadRecon(); }
@@ -649,6 +633,12 @@ function buildStatementHTML(month, data) {
         <tr><td style="padding:4px;">本月支出合計</td><td style="padding:4px;text-align:right;">${fmtMoney(t.totalExpense)}</td></tr>
         <tr style="font-weight:900;"><td style="padding:4px;">累計結餘</td><td style="padding:4px;text-align:right;">${fmtMoney(t.cumulativeBalance)}</td></tr>
       </table>
+
+      <div style="display:flex;justify-content:space-around;margin-top:60px;font-size:12px;text-align:center;">
+        <div>出納：_____________________</div>
+        <div>會計：_____________________</div>
+        <div>負責弟兄：_____________________</div>
+      </div>
     </div>
   `;
 }
