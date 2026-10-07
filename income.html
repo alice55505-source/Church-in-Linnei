@@ -46,7 +46,6 @@
   <!-- Main Content -->
   <div id="mainContent" class="hidden space-y-5">
 
-    <div id="reminderBanner" class="hidden"></div>
 
     <div class="card p-5 space-y-4">
       <div class="flex items-center justify-between">
@@ -172,7 +171,6 @@ async function checkLogin() {
     document.getElementById('mainContent').classList.remove('hidden');
     document.getElementById('logoutBtn').classList.remove('hidden');
     loadSessions();
-    api('/api/reminders/check').catch(() => {});
   } else {
     document.getElementById('loginGate').classList.remove('hidden');
     document.getElementById('mainContent').classList.add('hidden');
@@ -277,20 +275,7 @@ async function loadSessions() {
     const data = await api('/api/income');
     sessions = data.sessions;
     renderSessions();
-    renderReminderBanner();
   } catch (e) { toast(e.message, true); }
-}
-
-function renderReminderBanner() {
-  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
-  let pending = 0;
-  sessions.forEach(s => (s.personal_offerings || []).forEach(o => {
-    if (!o.recipient_signature_key && o.created_at && new Date(o.created_at).getTime() <= weekAgo) pending++;
-  }));
-  const el = document.getElementById('reminderBanner');
-  if (pending === 0) { el.classList.add('hidden'); el.innerHTML = ''; return; }
-  el.classList.remove('hidden');
-  el.innerHTML = `<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-base font-bold text-amber-700">⚠️ 有 ${pending} 筆個人奉獻包已逾一週未簽收，請盡快處理</div>`;
 }
 
 function renderSessions() {
