@@ -35,14 +35,16 @@ export async function onRequestPatch({ request, env, params }) {
 
   if (body.action === 'confirm') {
     const fresh = await env.DB.prepare('SELECT * FROM monthly_reconciliation WHERE month=?').bind(row.month).first();
-    // 不再需要線上電子簽名，改為列印收支表後手簽
-    const mismatch = fresh.bank_balance != null && fresh.computed_balance != null && Math.abs(fresh.bank_balance - fresh.computed_balance) > 0.01;
+    // 確認完成時以當下即時重算的記帳累計結餘為準（不是送出對帳當時存下的舊值），
+    // 避免之後補登手續費等異動造成的資料被忽略，也避免存下已經過期的數字當作正式紀錄
+    const computed_balance = await computeCumulativeBalance(env, row.month);
+    const mismatch = fresh.bank_balance != null && Math.abs(fresh.bank_balance - computed_balance) > 0.01;
     if (mismatch && !body.override_note) {
-      return badRequest(`銀行餘額（${fresh.bank_balance}）與記帳累計結餘（${fresh.computed_balance}）不符，請填寫說明後確認完成`);
+      return badRequest(`銀行餘額（${fresh.bank_balance}）與記帳累計結餘（${computed_balance}）不符，請填寫說明後確認完成`);
     }
 
-    await env.DB.prepare("UPDATE monthly_reconciliation SET status='confirmed', amount_override_note=? WHERE month=?")
-      .bind(mismatch ? String(body.override_note).slice(0, 500) : null, row.month).run();
+    await env.DB.prepare("UPDATE monthly_reconciliation SET status='confirmed', computed_balance=?, amount_override_note=? WHERE month=?")
+      .bind(computed_balance, mismatch ? String(body.override_note).slice(0, 500) : null, row.month).run();
     return json({ ok: true });
   }
 

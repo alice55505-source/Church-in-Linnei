@@ -529,10 +529,12 @@ async function loadRecon() {
       return;
     }
     const r = data.record;
-    const diff = (r.bank_balance || 0) - (r.computed_balance || 0);
+    // 用即時重算的 data.computed_balance（不是送出對帳當時存下的舊值），
+    // 避免之後補登手續費等異動卻沒反映在畫面上
+    const diff = (r.bank_balance || 0) - (data.computed_balance || 0);
     c.innerHTML = breakdownHTML + `
       <div class="text-base font-bold text-slate-600 space-y-1">
-        <div>記帳累計結餘：${fmtMoney(r.computed_balance)}</div>
+        <div>記帳累計結餘：${computed}</div>
         <div>銀行帳戶餘額：${fmtMoney(r.bank_balance)}</div>
         <div class="${diff === 0 ? 'text-emerald-600' : 'text-rose-500'}">差額：${fmtMoney(diff)}${diff === 0 ? '（相符）' : ''}</div>
         <img src="${fileUrl(r.bank_statement_key)}" onclick="openImagePreview('${fileUrl(r.bank_statement_key)}')" class="rounded-xl border border-slate-100 mt-2 max-h-48 cursor-pointer">
