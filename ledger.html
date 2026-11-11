@@ -616,14 +616,7 @@ function buildStatementHTML(month, data) {
       <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;">
         <tr style="background:#eee;"><th style="border:1px solid #ccc;padding:4px;">日期</th><th style="border:1px solid #ccc;padding:4px;">召會經常費</th><th style="border:1px solid #ccc;padding:4px;">全時間供給</th><th style="border:1px solid #ccc;padding:4px;">臺灣福音工作</th><th style="border:1px solid #ccc;padding:4px;">海外開展</th><th style="border:1px solid #ccc;padding:4px;">其他</th></tr>
         ${data.incomeSessions.map(s => `<tr><td style="border:1px solid #ccc;padding:4px;">${s.session_date}</td><td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(s.amount_general)}</td><td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(s.amount_fulltime)}</td><td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(s.amount_taiwan_gospel)}</td><td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(s.amount_overseas)}</td><td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(s.amount_other)}${s.other_note ? `（${esc(s.other_note)}）` : ''}</td></tr>`).join('')}
-        <tr style="font-weight:900;background:#f5f5f5;">
-          <td style="border:1px solid #ccc;padding:4px;text-align:right;">合計</td>
-          <td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(data.incomeSessions.reduce((s,r)=>s+r.amount_general,0))}</td>
-          <td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(data.incomeSessions.reduce((s,r)=>s+r.amount_fulltime,0))}</td>
-          <td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(data.incomeSessions.reduce((s,r)=>s+r.amount_taiwan_gospel,0))}</td>
-          <td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(data.incomeSessions.reduce((s,r)=>s+r.amount_overseas,0))}</td>
-          <td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(data.incomeSessions.reduce((s,r)=>s+r.amount_other,0))}</td>
-        </tr>
+        <tr style="font-weight:900;background:#f5f5f5;"><td colspan="5" style="border:1px solid #ccc;padding:4px;text-align:right;">合計</td><td style="border:1px solid #ccc;padding:4px;text-align:right;">${fmtMoney(t.totalIncome)}</td></tr>
       </table>
 
       <h2 style="font-size:14px;font-weight:900;border-bottom:1px solid #333;padding-bottom:4px;margin-top:20px;">收支統計</h2>
